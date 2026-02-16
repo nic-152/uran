@@ -1,73 +1,85 @@
 # AI Context: Database
 
 ## Назначение
-Текстовое описание схемы БД для корректной генерации Rust-структур, SQL-запросов и обработчиков API.
-Источник схемы: `backend/migrations/0001_init.up.sql`.
+Текстовое описание целевой модели данных для управляемого ручного процесса.
+Источник текущей реализации: `backend/migrations/0001_init.up.sql`.
 
-## ENUM типы
-- `project_role`: `owner | editor | viewer`
-- `test_status`: `pending | passed | failed | maybe`
+## Принципы
+- История должна быть неизменяемой: прогон ссылается на `testcase_version`, а не на mutable `testcase`.
+- Аналитика должна строиться SQL-запросами без сложных пост-обработок.
+- Любое управленческое действие должно оставлять след в `audit_log`.
 
-## Главные сущности и связи
+## Рекомендуемые сущности (целевая модель)
 
-### users
-Пользователи системы.
-- PK: `id (uuid)`
-- Уникальность: `email (citext unique)`
+### Библиотека тестов
+1. `test_suites`
+- Разделы/наборы тестов.
 
-### projects
-Проекты тестирования.
-- PK: `id`
-- FK: `owner_user_id -> users.id`
-- Содержит флаг архивирования через `archived_at`.
+2. `testcases`
+- Стабильный identity теста (без хранения полной mutable-логики).
 
-### project_members
-RBAC в рамках проекта.
-- PK: `(project_id, user_id)`
-- FK: `project_id -> projects.id`
-- FK: `user_id -> users.id`
-- `role` использует enum `project_role`.
+3. `testcase_versions`
+- Версия кейса: текст, шаги, критерии, обязательность, оценка времени, сложность.
+- Ключевой принцип: run всегда привязывается к версии.
 
-### test_sections
-Категории тестов внутри проекта.
-- FK: `project_id -> projects.id`
-- Один проект -> много секций.
+4. `tags`, `testcase_tags`
+- Теги для поиска, фильтрации, аналитики.
 
-### test_cases
-Тест-кейсы внутри секции.
-- FK: `section_id -> test_sections.id`
-- Одна секция -> много тест-кейсов.
+### Операционная работа
+1. `projects`
+- Проекты/клиенты/направления.
 
-### test_runs
-Конкретный прогон тестирования (снимок запуска).
-- FK: `project_id -> projects.id`
-- FK: `created_by_user_id -> users.id`
-- Один проект -> много прогонов.
+2. `assets`
+- Что тестируется: модель камеры, прошивка, стенд, объект.
 
-### run_test_results (ключевая таблица)
-Результаты кейсов в рамках конкретного прогона.
-- Композитный PK: `(run_id, test_case_id)`
-- FK: `run_id -> test_runs.id`
-- FK: `test_case_id -> test_cases.id`
-- `status` использует enum `test_status`
+3. `runs`
+- Контейнер прогона: кто, когда, по чему, статус.
+- Статусы: `draft`, `in_progress`, `done`, `locked`.
 
-Это таблица-связка many-to-many между `test_runs` и `test_cases` с полезной нагрузкой (`status`, `note`, `updated_by_user_id`, `updated_at`).
+4. `run_items`
+- Состав прогона (список пунктов).
+- Содержит ссылку на конкретный `testcase_version`.
 
-### run_test_screenshots
-Скриншоты, привязанные к конкретному результату теста.
-- FK (композитный): `(run_id, test_case_id) -> run_test_results(run_id, test_case_id)`
-- Таким образом скриншот принадлежит не просто кейсу, а кейсу в контексте конкретного прогона.
+5. `run_results`
+- Результат по каждому `run_item`: `ok/fail/na`, комментарий, причина fail, timestamps.
 
-## Как читать связи run/test
-Пример:
-- Есть `test_case` "RTSP reconnect".
-- Есть `test_run` "Firmware 2.3.1 / Camera X".
-- Строка в `run_test_results` говорит, что именно в этом прогоне данный кейс имеет статус, например `failed`.
-- Скриншоты и заметки должны ссылаться на эту строку результата, а не на кейс в вакууме.
+6. `attachments`
+- Файлы к `run_result` или к `run`.
+- Хранятся метаданные и ссылка/ключ файла, не Base64.
 
-## Правила для SQL и моделей
-- Для выборки отчётов всегда JOIN:
-  - `test_runs -> run_test_results -> test_cases`
-  - при необходимости `-> run_test_screenshots`
-- Не хранить бинарные изображения в БД как Base64: только метаданные и ключи хранения.
-- `updated_at` поддерживается триггерами для ряда таблиц (`users`, `projects`, `project_members`, `test_sections`, `test_cases`, `test_runs`).
+### Управление и контроль
+1. `users`
+- Пользователи и роли.
+
+2. `audit_log`
+- Полный трек изменений: actor, action, entity, entity_id, before_json, after_json, timestamp.
+
+3. (опционально) `worklog`
+- Явный учёт времени, если потребуется отдельно от таймстампов run.
+
+## Текущая реализация (что уже есть в БД)
+- enum: `project_role`, `test_status`
+- таблицы: `users`, `projects`, `project_members`, `test_sections`, `test_cases`, `test_runs`, `run_test_results`, `run_test_screenshots`, `auth_refresh_tokens`
+
+Ключевая текущая связка:
+- `test_runs` + `run_test_results` + `test_cases`
+- `run_test_results` хранит `status (test_status)` и payload результата.
+
+## Миграционный вектор
+Чтобы прийти к целевой модели без потери данных:
+1. Ввести `testcase_versions`.
+2. Добавить `run_items` со ссылкой на `testcase_version_id`.
+3. Перенести payload результата в `run_results` (или эволюционировать `run_test_results`).
+4. Нормализовать вложения в `attachments`.
+5. Добавить/расширить `audit_log`.
+
+## Что обязательно фиксировать для управляемости
+- Проект
+- Asset (модель камеры, прошивка, стенд/объект)
+- Инженер
+- Шаблон набора тестов
+- Итог прогона и причина FAIL
+
+## Причины FAIL
+- Использовать справочник причин (enum/reference table), а не только свободный текст.
+- Допускать комментарий как дополнение к выбранной причине.
