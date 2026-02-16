@@ -405,8 +405,51 @@ async fn ensure_json_file(path: &StdPath, content: &str) -> anyhow::Result<()> {
 async fn read_users(path: &StdPath) -> anyhow::Result<Vec<User>> {
     ensure_json_file(path, "{\n  \"users\": []\n}\n").await?;
     let raw = fs::read_to_string(path).await?;
-    let parsed: UsersFile = serde_json::from_str(&raw)?;
-    Ok(parsed.users)
+    match serde_json::from_str::<UsersFile>(&raw) {
+        Ok(parsed) => Ok(parsed.users),
+        Err(_) => {
+            let value: Value = serde_json::from_str(&raw)?;
+            let users = value
+                .get("users")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|item| {
+                    let obj = item.as_object()?;
+                    let id = obj.get("id")?.as_str()?.to_string();
+                    let email = obj.get("email")?.as_str()?.to_string();
+                    let name = obj
+                        .get("name")
+                        .or_else(|| obj.get("displayName"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("User")
+                        .to_string();
+                    let password = obj
+                        .get("password")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| obj.get("passwordHash").and_then(|v| v.as_str()))
+                        .unwrap_or_default()
+                        .to_string();
+                    let created_at = obj
+                        .get("createdAt")
+                        .or_else(|| obj.get("created_at"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("1970-01-01T00:00:00Z")
+                        .to_string();
+
+                    Some(User {
+                        id,
+                        name,
+                        email,
+                        password,
+                        created_at,
+                    })
+                })
+                .collect();
+            Ok(users)
+        }
+    }
 }
 
 async fn write_users(path: &StdPath, users: &[User]) -> anyhow::Result<()> {
