@@ -271,6 +271,22 @@
       min-height: 20px;
     }
 
+    .run-tools {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--item-bg);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .run-status {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      min-height: 18px;
+    }
+
     .members-list {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
@@ -886,6 +902,21 @@
             <div class="member-empty">Список участников будет доступен после выбора проекта.</div>
           </div>
           <div class="project-role" id="projectRoleLabel">Проект не выбран.</div>
+          <div class="run-tools">
+            <div class="project-row">
+              <select id="runSelect" title="Выбор run"></select>
+              <button class="btn" id="refreshRunsBtn" type="button" title="Обновить список run">Обновить runs</button>
+            </div>
+            <div class="project-row">
+              <button class="btn" id="createRunBtn" type="button" title="Создать новый run">+ Создать run</button>
+              <button class="btn" id="startRunBtn" type="button" title="Перевести run в in_progress">Старт</button>
+            </div>
+            <div class="project-row">
+              <button class="btn" id="doneRunBtn" type="button" title="Перевести run в done">Done</button>
+              <button class="btn primary" id="lockRunBtn" type="button" title="Перевести run в locked">Lock</button>
+            </div>
+            <div class="run-status" id="runStateLabel">Run не выбран.</div>
+          </div>
         </div>
         <div class="actions">
           <button class="btn primary" id="exportBtn" title="Сформировать и открыть отчёт">📊 Экспорт результатов</button>
@@ -1120,6 +1151,9 @@
       projectMembers: [],
       activeProjectId: '',
       activeProjectRole: '',
+      runs: [],
+      activeRunId: '',
+      activeRunStatus: '',
       saveDebounceTimer: null,
       theme: 'dark',
       testCatalog: []
@@ -1148,6 +1182,13 @@
       inviteBtn: document.getElementById('inviteBtn'),
       membersList: document.getElementById('membersList'),
       projectRoleLabel: document.getElementById('projectRoleLabel'),
+      runSelect: document.getElementById('runSelect'),
+      refreshRunsBtn: document.getElementById('refreshRunsBtn'),
+      createRunBtn: document.getElementById('createRunBtn'),
+      startRunBtn: document.getElementById('startRunBtn'),
+      doneRunBtn: document.getElementById('doneRunBtn'),
+      lockRunBtn: document.getElementById('lockRunBtn'),
+      runStateLabel: document.getElementById('runStateLabel'),
       projectName: document.getElementById('projectName'),
       cameraModel: document.getElementById('cameraModel'),
       firmwareVersion: document.getElementById('firmwareVersion'),
@@ -1221,6 +1262,27 @@
       });
       els.projectSelect.addEventListener('change', async (e) => {
         await selectProject(e.target.value, true);
+      });
+      els.refreshRunsBtn.addEventListener('click', async () => {
+        await loadRuns(true);
+      });
+      els.createRunBtn.addEventListener('click', async () => {
+        await createRunV2();
+      });
+      els.startRunBtn.addEventListener('click', async () => {
+        await updateRunStatusV2('in_progress');
+      });
+      els.doneRunBtn.addEventListener('click', async () => {
+        await updateRunStatusV2('done');
+      });
+      els.lockRunBtn.addEventListener('click', async () => {
+        await updateRunStatusV2('locked');
+      });
+      els.runSelect.addEventListener('change', async (e) => {
+        state.activeRunId = e.target.value || '';
+        const run = state.runs.find((r) => r.id === state.activeRunId);
+        state.activeRunStatus = run?.status || '';
+        renderRunTools();
       });
       els.addSectionBtn.addEventListener('click', () => {
         addSection();
@@ -1494,7 +1556,11 @@
         els.projectSelect.value = '';
         els.projectRoleLabel.textContent = 'Проект не выбран.';
         state.projectMembers = [];
+        state.runs = [];
+        state.activeRunId = '';
+        state.activeRunStatus = '';
         renderProjectMembers();
+        renderRunTools();
         return;
       }
 
@@ -1505,6 +1571,116 @@
       const active = state.projects.find((p) => p.id === els.projectSelect.value);
       if (active) {
         els.projectRoleLabel.textContent = `Роль: ${active.role.toUpperCase()} | Обновлён: ${new Date(active.updatedAt).toLocaleString('ru-RU')}`;
+      }
+    }
+
+    function renderRunTools() {
+      if (!state.activeProjectId) {
+        els.runSelect.innerHTML = '<option value="">Нет run</option>';
+        els.runSelect.value = '';
+        els.runStateLabel.textContent = 'Выбери проект, чтобы работать с run.';
+        [els.startRunBtn, els.doneRunBtn, els.lockRunBtn].forEach((btn) => {
+          btn.disabled = true;
+        });
+        return;
+      }
+
+      if (!state.runs.length) {
+        els.runSelect.innerHTML = '<option value="">Нет run</option>';
+        els.runSelect.value = '';
+        els.runStateLabel.textContent = 'Runs не найдены. Создай новый run.';
+        [els.startRunBtn, els.doneRunBtn, els.lockRunBtn].forEach((btn) => {
+          btn.disabled = true;
+        });
+        return;
+      }
+
+      els.runSelect.innerHTML = state.runs
+        .map((run) => `<option value="${run.id}">${escapeHtml(run.title || run.id)} · ${run.status}</option>`)
+        .join('');
+
+      const activeExists = state.runs.some((run) => run.id === state.activeRunId);
+      if (!activeExists) state.activeRunId = state.runs[0].id;
+      els.runSelect.value = state.activeRunId;
+
+      const activeRun = state.runs.find((run) => run.id === state.activeRunId) || null;
+      state.activeRunStatus = activeRun?.status || '';
+      const status = (state.activeRunStatus || '-').toUpperCase();
+      els.runStateLabel.textContent = activeRun
+        ? `Run: ${activeRun.id.slice(0, 8)} · Статус: ${status}`
+        : 'Run не выбран.';
+
+      const editable = canEditProject();
+      els.startRunBtn.disabled = !editable || !activeRun || activeRun.status === 'locked';
+      els.doneRunBtn.disabled = !editable || !activeRun || activeRun.status === 'locked';
+      els.lockRunBtn.disabled = !editable || !activeRun || activeRun.status !== 'done';
+    }
+
+    async function loadRuns(showFeedback) {
+      if (!state.activeProjectId) {
+        state.runs = [];
+        state.activeRunId = '';
+        state.activeRunStatus = '';
+        renderRunTools();
+        return;
+      }
+      try {
+        const payload = await apiFetch(`/v2/runs?projectId=${encodeURIComponent(state.activeProjectId)}&limit=100`);
+        state.runs = payload.runs || [];
+        renderRunTools();
+        if (showFeedback) showToast('Список run обновлён.');
+      } catch (error) {
+        if (showFeedback) showToast(error.message || 'Не удалось загрузить runs.');
+      }
+    }
+
+    async function createRunV2() {
+      if (!state.activeProjectId) {
+        showToast('Сначала выбери проект.');
+        return;
+      }
+      try {
+        const payload = await apiFetch('/v2/runs', {
+          method: 'POST',
+          body: JSON.stringify({
+            projectId: state.activeProjectId,
+            title: `${state.cameraModel || 'Camera'} ${state.firmwareVersion || ''}`.trim() || 'Manual run'
+          })
+        });
+        const createdId = payload?.run?.id || '';
+        await loadRuns(false);
+        if (createdId) {
+          state.activeRunId = createdId;
+          const activeRun = state.runs.find((run) => run.id === createdId);
+          state.activeRunStatus = activeRun?.status || '';
+          renderRunTools();
+        }
+        showToast('Run создан.');
+      } catch (error) {
+        showToast(error.message || 'Не удалось создать run.');
+      }
+    }
+
+    async function updateRunStatusV2(nextStatus) {
+      if (!state.activeRunId) {
+        showToast('Сначала выбери run.');
+        return;
+      }
+      try {
+        const payload = await apiFetch(`/v2/runs/${state.activeRunId}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: nextStatus })
+        });
+        const updated = payload?.run;
+        if (updated?.id) {
+          const idx = state.runs.findIndex((run) => run.id === updated.id);
+          if (idx >= 0) state.runs[idx] = updated;
+        }
+        state.activeRunStatus = updated?.status || nextStatus;
+        renderRunTools();
+        showToast(`Статус run: ${state.activeRunStatus}.`);
+      } catch (error) {
+        showToast(error.message || 'Не удалось изменить статус run.');
       }
     }
 
@@ -1619,6 +1795,7 @@
       state.activeProjectId = selected.id;
       state.activeProjectRole = selected.role;
       renderProjectOptions();
+      await loadRuns(false);
       await loadProjectSession(showFeedback);
       await loadProjectMembers(false);
       applyAccessMode();
@@ -1879,7 +2056,10 @@
       els.inviteEmail.disabled = state.activeProjectRole !== 'owner';
       els.inviteRole.disabled = state.activeProjectRole !== 'owner';
       els.inviteBtn.disabled = state.activeProjectRole !== 'owner';
+      els.createRunBtn.disabled = !editable || !state.activeProjectId;
+      els.refreshRunsBtn.disabled = !state.activeProjectId;
       renderProjectMembers();
+      renderRunTools();
     }
 
     function loadAuthFromStorage() {
@@ -1908,6 +2088,9 @@
       state.projectMembers = [];
       state.activeProjectId = '';
       state.activeProjectRole = '';
+      state.runs = [];
+      state.activeRunId = '';
+      state.activeRunStatus = '';
       clearTimeout(state.saveDebounceTimer);
       clearAuthStorage();
       resetSessionState();
@@ -1929,6 +2112,9 @@
       state.testDate = new Date().toISOString().slice(0, 10);
       state.savedAt = '';
       state.searchQuery = '';
+      state.runs = [];
+      state.activeRunId = '';
+      state.activeRunStatus = '';
       els.searchInput.value = '';
     }
 

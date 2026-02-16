@@ -41,6 +41,7 @@
 - Текущий статус реализации:
   - legacy endpoints (`/api/auth/*`, `/api/projects/*`) пока file-based.
   - v2 run endpoints уже DB-backed через `sqlx` (`/api/v2/runs*`).
+  - frontend уже имеет run-control блок (create/select/start/done/lock), подключенный к `/api/v2/runs*`.
 
 3. Data Layer (PostgreSQL)
 - Источник правды для доменных данных, аналитики и аудита.
