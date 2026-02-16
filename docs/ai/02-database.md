@@ -2,7 +2,7 @@
 
 ## Назначение
 Текстовое описание модели данных для управляемого ручного процесса.
-Источник: миграции `backend/migrations/0001_init.up.sql` и `backend/migrations/0002_controlled_manual_workflow.up.sql`.
+Источник: миграции `backend/migrations/0001_init.up.sql`, `backend/migrations/0002_controlled_manual_workflow.up.sql`, `backend/migrations/0003_fail_reasons_catalog.up.sql`.
 
 ## Что уже реализовано миграциями
 
@@ -80,6 +80,16 @@
 - Шаблон/набор тестов
 - Статус прогона
 - Итог/причина fail
+
+## Каталог причин FAIL (актуально после 0003)
+- `rtsp_stream_codec_bitrate`
+- `onvif_compatibility`
+- `network_dhcp_ipv6_multicast_ports`
+- `video_wdr_night_noise_blur`
+- `events_detection_false_positives`
+- `recording_sd_nfs_ftp`
+- `ui_settings_persistence`
+- `performance_overheat_reboot`
 
 ## Миграционный статус по коду
 - Уже реализовано: `sqlx` + PostgreSQL для v2 run workflow:
