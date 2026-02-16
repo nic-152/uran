@@ -464,8 +464,81 @@ async fn write_users(path: &StdPath, users: &[User]) -> anyhow::Result<()> {
 async fn read_projects(path: &StdPath) -> anyhow::Result<Vec<Project>> {
     ensure_json_file(path, "{\n  \"projects\": []\n}\n").await?;
     let raw = fs::read_to_string(path).await?;
-    let parsed: ProjectsFile = serde_json::from_str(&raw)?;
-    Ok(parsed.projects)
+    match serde_json::from_str::<ProjectsFile>(&raw) {
+        Ok(parsed) => Ok(parsed.projects),
+        Err(_) => {
+            let value: Value = serde_json::from_str(&raw)?;
+            let projects = value
+                .get("projects")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|item| {
+                    let obj = item.as_object()?;
+                    let id = obj.get("id")?.as_str()?.to_string();
+                    let name = obj
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Project")
+                        .to_string();
+                    let owner_id = obj
+                        .get("ownerId")
+                        .or_else(|| obj.get("owner_id"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+                    let created_at = obj
+                        .get("createdAt")
+                        .or_else(|| obj.get("created_at"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("1970-01-01T00:00:00Z")
+                        .to_string();
+                    let updated_at = obj
+                        .get("updatedAt")
+                        .or_else(|| obj.get("updated_at"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("1970-01-01T00:00:00Z")
+                        .to_string();
+
+                    let members = obj
+                        .get("members")
+                        .and_then(|v| v.as_array())
+                        .cloned()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter_map(|m| {
+                            let mo = m.as_object()?;
+                            let user_id = mo
+                                .get("userId")
+                                .or_else(|| mo.get("user_id"))
+                                .and_then(|v| v.as_str())?
+                                .to_string();
+                            let role = mo
+                                .get("role")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("viewer")
+                                .to_string();
+                            Some(ProjectMember { user_id, role })
+                        })
+                        .collect::<Vec<_>>();
+
+                    let session = obj.get("session").cloned();
+
+                    Some(Project {
+                        id,
+                        name,
+                        owner_id,
+                        created_at,
+                        updated_at,
+                        members,
+                        session,
+                    })
+                })
+                .collect();
+            Ok(projects)
+        }
+    }
 }
 
 async fn write_projects(path: &StdPath, projects: &[Project]) -> anyhow::Result<()> {
