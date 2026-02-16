@@ -16,6 +16,26 @@
 
 ## Быстрый старт
 
+### Единый запуск (рекомендуется)
+
+Одна команда для всего:
+
+```bash
+./bin/start.sh
+```
+
+Что делает скрипт:
+
+1. Поднимает PostgreSQL через `docker compose`
+2. Устанавливает зависимости frontend
+3. Собирает frontend в `frontend/dist`
+4. Запускает Rust backend, который раздаёт frontend на `/`
+
+После запуска:
+
+- UI: `http://<SERVER_IP>:8181/`
+- API health: `http://<SERVER_IP>:8181/health`
+
 ### 1) Поднять PostgreSQL
 
 ```bash
