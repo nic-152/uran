@@ -81,6 +81,12 @@
 - Статус прогона
 - Итог/причина fail
 
-## Миграционный вектор по коду (следующий шаг)
-- Перевести backend API с file-based storage на `sqlx` + PostgreSQL таблицы v2.
-- Сохранить compatibility read-only для legacy таблиц до полной миграции UI.
+## Миграционный статус по коду
+- Уже реализовано: `sqlx` + PostgreSQL для v2 run workflow:
+  - `POST /api/v2/runs`
+  - `GET /api/v2/runs`
+  - `GET /api/v2/runs/{run_id}`
+  - `POST /api/v2/runs/{run_id}/items`
+  - `PATCH /api/v2/runs/{run_id}/items/{run_item_id}/result`
+  - `PATCH /api/v2/runs/{run_id}/status`
+- Пока остаётся legacy слой (file-based) для `/api/auth/*` и `/api/projects/*` до полного перевода.

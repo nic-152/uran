@@ -35,6 +35,9 @@
 - Управление прогонами, результатами, вложениями.
 - Отдельные endpoint'ы для lock/unlock и аудита.
 - Раздача frontend-статики через `fallback_service`.
+- Текущий статус реализации:
+  - legacy endpoints (`/api/auth/*`, `/api/projects/*`) пока file-based.
+  - v2 run endpoints уже DB-backed через `sqlx` (`/api/v2/runs*`).
 
 3. Data Layer (PostgreSQL)
 - Источник правды для доменных данных, аналитики и аудита.
@@ -58,13 +61,16 @@
 2. Создание прогона
 - Инженер выбирает проект + asset + шаблон набора тестов.
 - Система создаёт run и фиксирует конкретные `testcase_version` в `run_items`.
+- Реализовано в API: `POST /api/v2/runs`, `POST /api/v2/runs/{run_id}/items`.
 
 3. Заполнение результатов
 - Для каждого `run_item`: статус, комментарий, вложения, причина FAIL (справочник + комментарий).
+- Реализовано в API: `PATCH /api/v2/runs/{run_id}/items/{run_item_id}/result`.
 
 4. Завершение
 - `done` фиксирует факт выполнения.
 - `locked` фиксирует неизменяемый отчётный слепок.
+- Реализовано в API: `PATCH /api/v2/runs/{run_id}/status`.
 
 5. Аудит
 - Все значимые действия пишутся в `audit_log` с `before/after`.
