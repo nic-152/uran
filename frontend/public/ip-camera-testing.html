@@ -9,67 +9,67 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --accent-primary: #34d399;
-      --accent-secondary: #22c55e;
+      --accent-primary: #0ea5a4;
+      --accent-secondary: #0891b2;
       --accent-success: #10b981;
-      --accent-warning: #f59e0b;
-      --accent-error: #ef4444;
-      --pending: #6b7280;
-
-      --text-primary: #e8eef8;
-      --text-secondary: #9fb0c9;
-      --text-muted: #7486a3;
-
-      --bg-gradient-start: #050910;
-      --bg-gradient-mid: #0c1828;
-      --bg-gradient-end: #10233a;
-      --bg-blob-1: rgba(56, 189, 248, 0.22);
-      --bg-blob-2: rgba(52, 211, 153, 0.16);
-
-      --surface-bg: linear-gradient(150deg, rgba(12, 22, 38, 0.92), rgba(9, 16, 30, 0.95));
-      --panel-bg: rgba(9, 18, 33, 0.66);
-      --input-bg: rgba(8, 15, 29, 0.78);
-      --item-bg: rgba(7, 14, 27, 0.58);
-      --item-strong-bg: rgba(11, 21, 36, 0.88);
-
-      --border-color: rgba(111, 141, 177, 0.35);
-      --border-strong: rgba(130, 164, 203, 0.5);
-      --ring-color: rgba(52, 211, 153, 0.4);
-      --shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
-
-      --radius-lg: 20px;
-      --radius-md: 14px;
-      --radius-sm: 10px;
-    }
-
-    :root[data-theme='light'] {
-      --accent-primary: #0f766e;
-      --accent-secondary: #0ea5e9;
-      --accent-success: #059669;
       --accent-warning: #d97706;
-      --accent-error: #dc2626;
+      --accent-error: #ef4444;
       --pending: #6b7280;
 
       --text-primary: #0f172a;
       --text-secondary: #475569;
       --text-muted: #64748b;
 
-      --bg-gradient-start: #eef4ff;
-      --bg-gradient-mid: #f7fdfb;
-      --bg-gradient-end: #ecfeff;
-      --bg-blob-1: rgba(14, 165, 233, 0.16);
-      --bg-blob-2: rgba(16, 185, 129, 0.14);
+      --bg-gradient-start: #f8fbff;
+      --bg-gradient-mid: #f2f8ff;
+      --bg-gradient-end: #eef6ff;
+      --bg-blob-1: rgba(14, 165, 233, 0.08);
+      --bg-blob-2: rgba(16, 185, 129, 0.07);
 
-      --surface-bg: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(241, 248, 255, 0.9));
-      --panel-bg: rgba(255, 255, 255, 0.72);
-      --input-bg: rgba(255, 255, 255, 0.93);
-      --item-bg: rgba(248, 251, 255, 0.9);
-      --item-strong-bg: rgba(244, 249, 255, 0.95);
+      --surface-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(246, 251, 255, 0.98));
+      --panel-bg: rgba(255, 255, 255, 0.86);
+      --input-bg: rgba(255, 255, 255, 0.98);
+      --item-bg: rgba(248, 251, 255, 0.96);
+      --item-strong-bg: rgba(243, 248, 255, 0.98);
 
-      --border-color: rgba(148, 163, 184, 0.45);
+      --border-color: rgba(148, 163, 184, 0.34);
       --border-strong: rgba(100, 116, 139, 0.42);
-      --ring-color: rgba(14, 165, 233, 0.32);
-      --shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
+      --ring-color: rgba(14, 165, 233, 0.24);
+      --shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    :root[data-theme='light'] {
+      --accent-primary: #2dd4bf;
+      --accent-secondary: #38bdf8;
+      --accent-success: #059669;
+      --accent-warning: #f59e0b;
+      --accent-error: #dc2626;
+      --pending: #6b7280;
+
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --bg-gradient-start: #0b1220;
+      --bg-gradient-mid: #0f172a;
+      --bg-gradient-end: #101d30;
+      --bg-blob-1: rgba(56, 189, 248, 0.16);
+      --bg-blob-2: rgba(45, 212, 191, 0.14);
+
+      --surface-bg: linear-gradient(150deg, rgba(15, 23, 42, 0.92), rgba(12, 19, 35, 0.95));
+      --panel-bg: rgba(15, 23, 42, 0.76);
+      --input-bg: rgba(15, 23, 42, 0.88);
+      --item-bg: rgba(15, 23, 42, 0.65);
+      --item-strong-bg: rgba(15, 23, 42, 0.92);
+
+      --border-color: rgba(100, 116, 139, 0.38);
+      --border-strong: rgba(148, 163, 184, 0.46);
+      --ring-color: rgba(56, 189, 248, 0.26);
+      --shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
     }
 
     * { box-sizing: border-box; }
@@ -83,15 +83,15 @@
         radial-gradient(circle at 8% 8%, var(--bg-blob-1), transparent 28%),
         radial-gradient(circle at 92% 18%, var(--bg-blob-2), transparent 32%),
         linear-gradient(160deg, var(--bg-gradient-start), var(--bg-gradient-mid) 52%, var(--bg-gradient-end));
-      padding: 22px;
+      padding: 14px;
       transition: background 240ms ease, color 180ms ease;
     }
 
     .app {
-      max-width: 1500px;
+      max-width: 1680px;
       margin: 0 auto;
       display: grid;
-      gap: 18px;
+      gap: 14px;
       animation: fadeIn 260ms ease;
     }
 
@@ -100,11 +100,11 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(1px);
     }
 
     .header {
-      padding: 22px 24px;
+      padding: 16px 18px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -185,9 +185,9 @@
     }
 
     .auth-gate {
-      max-width: 520px;
-      margin: 6vh auto 0;
-      padding: 18px;
+      max-width: 460px;
+      margin: 8vh auto 0;
+      padding: 16px;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
@@ -322,17 +322,17 @@
     }
 
     .grid-2 {
-      padding: 18px;
+      padding: 14px;
       display: grid;
       grid-template-columns: 1.1fr 1fr;
-      gap: 18px;
+      gap: 14px;
     }
 
     .panel {
       background: var(--panel-bg);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 14px;
+      padding: 12px;
     }
 
     .panel h2 {
@@ -386,16 +386,16 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 8px;
     }
 
     .stat {
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-color);
       background: var(--item-bg);
-      padding: 10px;
-      min-height: 72px;
+      padding: 8px;
+      min-height: 64px;
       display: grid;
       align-content: center;
       gap: 6px;
@@ -422,8 +422,8 @@
     .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
+      gap: 8px;
+      margin-top: 6px;
     }
 
     .btn {
@@ -431,15 +431,14 @@
       background: var(--item-strong-bg);
       color: var(--text-primary);
       border-radius: var(--radius-sm);
-      padding: 10px 12px;
+      padding: 8px 11px;
       cursor: pointer;
       font: inherit;
-      min-height: 38px;
-      transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
+      min-height: 36px;
+      transition: border-color 160ms ease, background 160ms ease;
     }
 
     .btn:hover {
-      transform: translateY(-1px);
       border-color: color-mix(in srgb, var(--accent-primary) 66%, transparent);
       background: color-mix(in srgb, var(--item-strong-bg) 78%, var(--accent-primary) 22%);
     }
@@ -450,7 +449,7 @@
     }
 
     .search {
-      padding: 0 18px 18px;
+      padding: 0 14px 14px;
     }
 
     .search input { font-size: 0.95rem; }
@@ -458,7 +457,7 @@
     .tree {
       display: grid;
       gap: 12px;
-      padding: 0 18px 18px;
+      padding: 0 14px 14px;
     }
 
     .section {
@@ -511,14 +510,14 @@
     .tests {
       display: grid;
       gap: 10px;
-      padding: 12px;
+      padding: 10px;
     }
 
     .test-item {
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       background: var(--item-bg);
-      padding: 12px;
+      padding: 10px;
       display: grid;
       gap: 10px;
     }
@@ -765,7 +764,7 @@
 
     @media (max-width: 768px) {
       body { padding: 12px; }
-      .header { padding: 16px; }
+      .header { padding: 14px; }
       .grid-2,
       .search,
       .tree { padding-left: 12px; padding-right: 12px; }
@@ -1347,7 +1346,7 @@
       if (stored === 'light' || stored === 'dark') {
         state.theme = stored;
       } else {
-        state.theme = 'dark';
+        state.theme = 'light';
       }
       applyTheme();
     }
