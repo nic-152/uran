@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let host = env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = env::var("API_PORT").unwrap_or_else(|_| "8080".to_string());
+    let port = env::var("API_PORT").unwrap_or_else(|_| "8181".to_string());
     let addr: SocketAddr = format!("{}:{}", host, port)
         .parse()
         .context("failed to parse API_HOST/API_PORT")?;

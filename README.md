@@ -43,7 +43,7 @@ cargo run
 API health endpoint:
 
 ```text
-GET http://localhost:8080/health
+GET http://localhost:8181/health
 ```
 
 ### 4) Применить SQL миграции
