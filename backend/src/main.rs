@@ -213,6 +213,19 @@ struct SaveSessionResponse {
     updated_at: String,
 }
 
+#[derive(Serialize)]
+struct FailReasonsResponse {
+    reasons: Vec<FailReasonDto>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FailReasonDto {
+    code: String,
+    title: String,
+    description: String,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreateRunRequest {
@@ -1042,6 +1055,36 @@ async fn save_session(
     }))
 }
 
+async fn list_fail_reasons(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<FailReasonsResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let _actor_id = parse_bearer_user_id(&headers)?;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT code, title, description
+        FROM fail_reasons
+        WHERE is_active = TRUE
+        ORDER BY title ASC
+        "#,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Не удалось загрузить причины FAIL."))?;
+
+    let reasons = rows
+        .into_iter()
+        .map(|row| FailReasonDto {
+            code: row.get::<String, _>("code"),
+            title: row.get::<String, _>("title"),
+            description: row.get::<String, _>("description"),
+        })
+        .collect();
+
+    Ok(Json(FailReasonsResponse { reasons }))
+}
+
 fn parse_uuid(input: &str, err_message: &str) -> Result<Uuid, (StatusCode, Json<ErrorResponse>)> {
     Uuid::parse_str(input).map_err(|_| api_error(StatusCode::BAD_REQUEST, err_message))
 }
@@ -1667,6 +1710,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/auth/register", post(register))
         .route("/api/auth/login", post(login))
         .route("/api/auth/me", get(me))
+        .route("/api/fail-reasons", get(list_fail_reasons))
         .route("/api/projects", get(list_projects).post(create_project))
         .route("/api/projects/{project_id}/members", post(add_member).get(list_members))
         .route(

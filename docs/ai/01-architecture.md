@@ -32,6 +32,8 @@
 - Работает только через API `/api/...`.
 - LocalStorage не используется как primary storage для бизнес-данных.
 - Предусмотреть быстрый ручной ввод: hotkeys, быстрые OK/FAIL/NA, массовое подтверждение для групп.
+- Основной UI framework: Material UI (MUI).
+- Базовый layout: `AppBar` + `Drawer` + `Box`, реализованный через `AppLayout`.
 
 2. API Layer (Axum)
 - Авторизация, RBAC, CRUD библиотеки тестов.
@@ -42,6 +44,7 @@
   - legacy endpoints (`/api/auth/*`, `/api/projects/*`) пока file-based.
   - v2 run endpoints уже DB-backed через `sqlx` (`/api/v2/runs*`).
   - frontend уже имеет run-control блок (create/select/start/done/lock), подключенный к `/api/v2/runs*`.
+  - endpoint `GET /api/fail-reasons` используется для выбора причин FAIL в UI.
 
 3. Data Layer (PostgreSQL)
 - Источник правды для доменных данных, аналитики и аудита.
