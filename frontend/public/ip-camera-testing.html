@@ -1,0 +1,2442 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IP Camera Testing System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --accent-primary: #34d399;
+      --accent-secondary: #22c55e;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --accent-error: #ef4444;
+      --pending: #6b7280;
+
+      --text-primary: #e8eef8;
+      --text-secondary: #9fb0c9;
+      --text-muted: #7486a3;
+
+      --bg-gradient-start: #050910;
+      --bg-gradient-mid: #0c1828;
+      --bg-gradient-end: #10233a;
+      --bg-blob-1: rgba(56, 189, 248, 0.22);
+      --bg-blob-2: rgba(52, 211, 153, 0.16);
+
+      --surface-bg: linear-gradient(150deg, rgba(12, 22, 38, 0.92), rgba(9, 16, 30, 0.95));
+      --panel-bg: rgba(9, 18, 33, 0.66);
+      --input-bg: rgba(8, 15, 29, 0.78);
+      --item-bg: rgba(7, 14, 27, 0.58);
+      --item-strong-bg: rgba(11, 21, 36, 0.88);
+
+      --border-color: rgba(111, 141, 177, 0.35);
+      --border-strong: rgba(130, 164, 203, 0.5);
+      --ring-color: rgba(52, 211, 153, 0.4);
+      --shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
+
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    :root[data-theme='light'] {
+      --accent-primary: #0f766e;
+      --accent-secondary: #0ea5e9;
+      --accent-success: #059669;
+      --accent-warning: #d97706;
+      --accent-error: #dc2626;
+      --pending: #6b7280;
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+
+      --bg-gradient-start: #eef4ff;
+      --bg-gradient-mid: #f7fdfb;
+      --bg-gradient-end: #ecfeff;
+      --bg-blob-1: rgba(14, 165, 233, 0.16);
+      --bg-blob-2: rgba(16, 185, 129, 0.14);
+
+      --surface-bg: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(241, 248, 255, 0.9));
+      --panel-bg: rgba(255, 255, 255, 0.72);
+      --input-bg: rgba(255, 255, 255, 0.93);
+      --item-bg: rgba(248, 251, 255, 0.9);
+      --item-strong-bg: rgba(244, 249, 255, 0.95);
+
+      --border-color: rgba(148, 163, 184, 0.45);
+      --border-strong: rgba(100, 116, 139, 0.42);
+      --ring-color: rgba(14, 165, 233, 0.32);
+      --shadow: 0 22px 44px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      background:
+        radial-gradient(circle at 8% 8%, var(--bg-blob-1), transparent 28%),
+        radial-gradient(circle at 92% 18%, var(--bg-blob-2), transparent 32%),
+        linear-gradient(160deg, var(--bg-gradient-start), var(--bg-gradient-mid) 52%, var(--bg-gradient-end));
+      padding: 22px;
+      transition: background 240ms ease, color 180ms ease;
+    }
+
+    .app {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+      animation: fadeIn 260ms ease;
+    }
+
+    .surface {
+      background: var(--surface-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(4px);
+    }
+
+    .header {
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .title {
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.02em;
+      font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .progress-badge {
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-primary);
+      white-space: nowrap;
+      font-size: 0.9rem;
+      background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+    }
+
+    .header-right {
+      display: grid;
+      gap: 8px;
+      justify-items: end;
+    }
+
+    .theme-switch {
+      display: inline-flex;
+      gap: 6px;
+      border: 1px solid var(--border-strong);
+      border-radius: 999px;
+      padding: 4px;
+      background: var(--item-bg);
+    }
+
+    .theme-chip {
+      border: 0;
+      border-radius: 999px;
+      min-height: 30px;
+      padding: 0 12px;
+      font: inherit;
+      color: var(--text-secondary);
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.83rem;
+      transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+    }
+
+    .theme-chip:hover { transform: translateY(-1px); }
+
+    .theme-chip.active {
+      color: var(--text-primary);
+      background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 50%, transparent);
+    }
+
+    .user-badge {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+    }
+
+    .user-badge strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .auth-gate {
+      max-width: 520px;
+      margin: 6vh auto 0;
+      padding: 18px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      background: var(--surface-bg);
+      display: grid;
+      gap: 12px;
+      animation: fadeIn 240ms ease;
+    }
+
+    .auth-title {
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.2rem;
+      color: var(--accent-primary);
+    }
+
+    .auth-subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      border: 1px solid var(--border-strong);
+      background: var(--item-strong-bg);
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      min-height: 38px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .auth-tab.active {
+      border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+      color: var(--accent-primary);
+      background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 10px;
+      padding: 8px 0 2px;
+    }
+
+    .auth-error {
+      min-height: 22px;
+      color: #fca5a5;
+      font-size: 0.85rem;
+    }
+
+    .project-tools {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .project-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .project-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 140px auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .project-role {
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      min-height: 20px;
+    }
+
+    .members-list {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--item-bg);
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      max-height: 190px;
+      overflow: auto;
+    }
+
+    .member-row {
+      display: grid;
+      grid-template-columns: 1fr 120px auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--item-strong-bg);
+      padding: 6px 8px;
+    }
+
+    .member-meta {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .member-name {
+      font-size: 0.86rem;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .member-email {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .member-empty {
+      color: var(--text-secondary);
+      font-size: 0.83rem;
+      padding: 2px 0;
+    }
+
+    .grid-2 {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field { display: grid; gap: 6px; }
+
+    .field label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    input[type='text'],
+    input[type='password'],
+    input[type='date'],
+    select,
+    textarea,
+    .search input {
+      width: 100%;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      font: inherit;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input:focus,
+    textarea:focus,
+    .search input:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--accent-primary) 74%, transparent);
+      box-shadow: 0 0 0 3px var(--ring-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--item-bg);
+      padding: 10px;
+      min-height: 72px;
+      display: grid;
+      align-content: center;
+      gap: 6px;
+    }
+
+    .stat .name {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .value.passed { color: var(--accent-success); }
+    .value.failed { color: var(--accent-error); }
+    .value.maybe { color: var(--accent-warning); }
+    .value.pending { color: #a7aebc; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      border: 1px solid var(--border-strong);
+      background: var(--item-strong-bg);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      cursor: pointer;
+      font: inherit;
+      min-height: 38px;
+      transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent-primary) 66%, transparent);
+      background: color-mix(in srgb, var(--item-strong-bg) 78%, var(--accent-primary) 22%);
+    }
+
+    .btn.primary {
+      background: linear-gradient(160deg, color-mix(in srgb, var(--accent-primary) 28%, transparent), color-mix(in srgb, var(--accent-secondary) 22%, transparent));
+      border-color: color-mix(in srgb, var(--accent-primary) 64%, transparent);
+    }
+
+    .search {
+      padding: 0 18px 18px;
+    }
+
+    .search input { font-size: 0.95rem; }
+
+    .tree {
+      display: grid;
+      gap: 12px;
+      padding: 0 18px 18px;
+    }
+
+    .section {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--panel-bg);
+      overflow: hidden;
+    }
+
+    .section-header {
+      width: 100%;
+      border: 0;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--item-strong-bg) 80%, transparent), color-mix(in srgb, var(--panel-bg) 88%, transparent));
+      color: var(--text-primary);
+      padding: 12px 14px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: background 160ms ease;
+      min-height: 42px;
+    }
+
+    .section-header:hover { background: color-mix(in srgb, var(--item-strong-bg) 74%, var(--accent-primary) 26%); }
+
+    .section-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .section-title {
+      font-weight: 700;
+      font-size: 0.96rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .section-progress {
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .tests {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .test-item {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--item-bg);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .test-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .test-name {
+      margin: 0;
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    .test-details {
+      margin: 4px 0 0;
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    .status-buttons {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .status-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: var(--item-strong-bg);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 120ms ease, border-color 160ms ease;
+    }
+
+    .status-btn:hover { transform: translateY(-1px); }
+
+    .status-btn.active.passed {
+      border-color: rgba(16, 185, 129, 0.9);
+      color: var(--accent-success);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .status-btn.active.failed {
+      border-color: rgba(239, 68, 68, 0.95);
+      color: var(--accent-error);
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .status-btn.active.maybe {
+      border-color: rgba(245, 158, 11, 0.95);
+      color: var(--accent-warning);
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    .test-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .notes textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.35;
+    }
+
+    .shots {
+      display: grid;
+      gap: 8px;
+    }
+
+    .uploader {
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      background: var(--item-bg);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      min-height: 60px;
+    }
+
+    .uploader.drag {
+      border-color: color-mix(in srgb, var(--accent-primary) 80%, transparent);
+      background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    }
+
+    .upload-text {
+      color: var(--text-secondary);
+      font-size: 0.83rem;
+    }
+
+    .screens {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .shot {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--item-strong-bg);
+      aspect-ratio: 4 / 3;
+      border: 1px solid var(--border-color);
+    }
+
+    .shot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: zoom-in;
+      display: block;
+    }
+
+    .shot-delete {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      width: 24px;
+      height: 24px;
+      border: 0;
+      border-radius: 6px;
+      background: rgba(2, 6, 23, 0.86);
+      color: #f8fafc;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .shot-delete:hover { background: rgba(239, 68, 68, 0.9); }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.76);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-box {
+      width: min(980px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-strong);
+      background: var(--surface-bg);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--item-strong-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+
+    .modal-close:hover { background: rgba(239, 68, 68, 0.9); }
+
+    .report {
+      width: 100%;
+      min-height: 400px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.83rem;
+      line-height: 1.35;
+      white-space: pre;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .image-modal-content img {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      display: block;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--item-strong-bg);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.86rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms ease, transform 200ms ease;
+      z-index: 1100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 1200px) {
+      .grid-2,
+      .test-bottom {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 1600px) {
+      .screens {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      .header { padding: 16px; }
+      .grid-2,
+      .search,
+      .tree { padding-left: 12px; padding-right: 12px; }
+      .inputs { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .screens { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .test-top { flex-direction: column; }
+      .project-row,
+      .project-row-3,
+      .member-row { grid-template-columns: 1fr; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <section class="auth-gate" id="authGate">
+    <h2 class="auth-title">Авторизация</h2>
+    <p class="auth-subtitle">Доступ к тестовым данным только после входа в аккаунт.</p>
+    <div class="theme-switch" aria-label="Переключение темы">
+      <button class="theme-chip" type="button" data-theme-set="light">☀ День</button>
+      <button class="theme-chip" type="button" data-theme-set="dark">🌙 Ночь</button>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" type="button">Вход</button>
+      <button class="auth-tab" id="registerTab" type="button">Регистрация</button>
+    </div>
+    <form class="auth-form" id="authForm">
+      <div class="field" id="authNameField">
+        <label for="authName">Имя</label>
+        <input id="authName" type="text" placeholder="Иван Иванов" />
+      </div>
+      <div class="field">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="text" placeholder="name@example.com" required />
+      </div>
+      <div class="field">
+        <label for="authPassword">Пароль</label>
+        <input id="authPassword" type="password" placeholder="Минимум 8 символов" required />
+      </div>
+      <button class="btn primary" id="authSubmitBtn" type="submit">Войти</button>
+      <div class="auth-error" id="authError"></div>
+    </form>
+  </section>
+
+  <main class="app hidden" id="appRoot">
+    <section class="surface header">
+      <div>
+        <h1 class="title">IP Camera Testing System</h1>
+        <p class="subtitle">Командная система тестирования функционала IP-камер с автосохранением локально.</p>
+      </div>
+      <div class="header-right">
+        <div class="theme-switch" aria-label="Переключение темы">
+          <button class="theme-chip" type="button" data-theme-set="light">☀ День</button>
+          <button class="theme-chip" type="button" data-theme-set="dark">🌙 Ночь</button>
+        </div>
+        <div class="user-badge"><span>Пользователь:</span> <strong id="userBadge">-</strong></div>
+        <button class="btn" id="logoutBtn" type="button" title="Выйти из аккаунта">Выйти</button>
+        <div class="progress-badge" id="overallProgress">Прогресс: 0%</div>
+      </div>
+    </section>
+
+    <section class="surface grid-2">
+      <div class="panel">
+        <h2>Информация о тестировании</h2>
+        <div class="inputs">
+          <div class="field">
+            <label for="projectName">Проект</label>
+            <input id="projectName" type="text" placeholder="Например: Тестирование IPC-HFW5442E-ZE" />
+          </div>
+          <div class="field">
+            <label for="testerName">Тестировщик</label>
+            <input id="testerName" type="text" placeholder="Имя тестировщика" />
+          </div>
+          <div class="field">
+            <label for="cameraModel">Модель камеры</label>
+            <input id="cameraModel" type="text" placeholder="IPC-HFW5442E-ZE" />
+          </div>
+          <div class="field">
+            <label for="firmwareVersion">Версия прошивки</label>
+            <input id="firmwareVersion" type="text" placeholder="v2.840.0000000.1.R" />
+          </div>
+          <div class="field">
+            <label for="testDate">Дата тестирования</label>
+            <input id="testDate" type="date" />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Статистика</h2>
+        <div class="stats-grid">
+          <article class="stat"><div class="name">✓ Пройдено</div><div class="value passed" id="statPassed">0</div></article>
+          <article class="stat"><div class="name">✗ Не пройдено</div><div class="value failed" id="statFailed">0</div></article>
+          <article class="stat"><div class="name">? Возможно</div><div class="value maybe" id="statMaybe">0</div></article>
+          <article class="stat"><div class="name">○ Ожидает</div><div class="value pending" id="statPending">0</div></article>
+        </div>
+        <div class="project-tools">
+          <div class="project-row">
+            <select id="projectSelect" title="Выбор проекта"></select>
+            <button class="btn" id="refreshProjectsBtn" type="button" title="Обновить список проектов">Обновить</button>
+          </div>
+          <div class="project-row">
+            <input id="newProjectName" type="text" placeholder="Название нового проекта" />
+            <button class="btn" id="createProjectBtn" type="button" title="Создать проект">Создать</button>
+          </div>
+          <div class="project-row-3">
+            <input id="inviteEmail" type="text" placeholder="email участника" />
+            <select id="inviteRole" title="Роль доступа">
+              <option value="editor">Editor</option>
+              <option value="viewer">Viewer</option>
+            </select>
+            <button class="btn" id="inviteBtn" type="button" title="Выдать доступ к проекту">Выдать доступ</button>
+          </div>
+          <div class="members-list" id="membersList">
+            <div class="member-empty">Список участников будет доступен после выбора проекта.</div>
+          </div>
+          <div class="project-role" id="projectRoleLabel">Проект не выбран.</div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="exportBtn" title="Сформировать и открыть отчёт">📊 Экспорт результатов</button>
+          <button class="btn" id="saveBtn" title="Сохранить данные проекта">💾 Сохранить прогресс</button>
+          <button class="btn" id="loadBtn" title="Загрузить данные текущего проекта">📂 Загрузить прогресс</button>
+          <button class="btn" id="resetBtn" title="Очистить статусы, заметки и скриншоты">🔄 Сбросить все</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface search">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;">
+        <input id="searchInput" type="text" placeholder="Поиск по названию, деталям или примечаниям..." />
+        <button class="btn" id="addSectionBtn" type="button" title="Добавить новую категорию">+ Категория</button>
+      </div>
+    </section>
+
+    <section class="surface tree" id="testTree"></section>
+  </main>
+
+  <div class="modal" id="reportModal" aria-hidden="true">
+    <div class="modal-box">
+      <button class="modal-close" data-close="reportModal" title="Закрыть">×</button>
+      <h2 style="margin-top:0;font-family:'JetBrains Mono',monospace;">Экспорт результатов</h2>
+      <textarea id="reportText" class="report" readonly></textarea>
+      <div class="report-actions">
+        <button class="btn primary" id="copyReportBtn" title="Копировать отчёт в буфер">Копировать</button>
+        <button class="btn" id="downloadReportBtn" title="Скачать отчёт как TXT">Скачать TXT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="imageModal" aria-hidden="true">
+    <div class="modal-box image-modal-content">
+      <button class="modal-close" data-close="imageModal" title="Закрыть">×</button>
+      <img id="fullImage" src="" alt="Screenshot preview" />
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'ipCameraTestData';
+    const AUTH_STORAGE_KEY = 'ipCameraAuth';
+    const THEME_STORAGE_KEY = 'ipCameraTheme';
+    const API_BASE = `${window.location.origin}/api`;
+    const STATUS = {
+      pending: { icon: '○', label: 'Ожидает' },
+      passed: { icon: '✓', label: 'Пройдено' },
+      failed: { icon: '✗', label: 'Не пройдено' },
+      maybe: { icon: '?', label: 'Возможно' }
+    };
+
+    const DEFAULT_TEST_DATA = [
+      {
+        id: 'base-settings',
+        name: 'Основные настройки',
+        icon: '🔧',
+        tests: [
+          { id: 'base-device-name', name: 'Имя устройства', details: 'Проверить изменение имени и сохранение после перезагрузки.' },
+          { id: 'base-af-lens', name: 'Инициализация объектива AF LENS', details: 'Проверить автокалибровку фокуса и корректность инициализации.' },
+          { id: 'base-mobile-p2p', name: 'Mobile P2P', details: 'Проверить добавление камеры в мобильное приложение и стабильность P2P.' }
+        ]
+      },
+      {
+        id: 'system',
+        name: 'Система (System)',
+        icon: '🖥️',
+        tests: [
+          { id: 'sys-date-time', name: 'Дата и время', details: 'Проверка ручной установки даты/времени.' },
+          { id: 'sys-ntp', name: 'Синхронизация с NTP', details: 'Проверить синхронизацию с NTP-сервером.' },
+          { id: 'sys-dst', name: 'Летнее время', details: 'Проверить переключение DST.' },
+          { id: 'sys-auto-reboot', name: 'Автоматическая перезагрузка', details: 'Проверить расписание автоперезагрузки.' },
+          { id: 'sys-maintenance', name: 'Обслуживание устройства', details: 'Проверить очистку/сервисные операции.' },
+          { id: 'sys-config-impex', name: 'Конфигурация (экспорт/импорт)', details: 'Проверка экспорта и восстановления конфигурации.' },
+          { id: 'sys-fw-update', name: 'Обновление прошивки', details: 'Проверить процедуру обновления и сохранность настроек.' },
+          { id: 'sys-ptz-rs485', name: 'PTZ/RS485', details: 'Проверка интерфейса RS485 и связи с PTZ.' },
+          { id: 'sys-alarm-if', name: 'Интерфейс тревог', details: 'Проверить реакцию на тревожные входы/выходы.' },
+          { id: 'sys-info', name: 'Системная информация', details: 'Проверка корректности отображаемых системных данных.' },
+          { id: 'sys-logs', name: 'Логи', details: 'Проверить запись и отображение журналов событий.' }
+        ]
+      },
+      {
+        id: 'network',
+        name: 'Сеть (Network)',
+        icon: '🌐',
+        tests: [
+          { id: 'net-tcpip', name: 'TCP/IP', details: 'Проверить DHCP/статический адрес и доступность камеры.' },
+          { id: 'net-dns', name: 'DNS', details: 'Проверка резолвинга доменных имён.' },
+          { id: 'net-ports', name: 'Порты', details: 'Проверить изменения HTTP/HTTPS/RTSP портов.' },
+          { id: 'net-wifi', name: 'WiFi', details: 'Проверка подключения к WiFi-сети и стабильности.' },
+          { id: 'net-pppoe', name: 'PPPoE', details: 'Проверка PPPoE-авторизации.' },
+          { id: 'net-smtp', name: 'SMTP', details: 'Проверка отправки email-уведомлений.' },
+          { id: 'net-upnp', name: 'UPnP', details: 'Проверка автонастройки портов через UPnP.' },
+          { id: 'net-ddns', name: 'DDNS', details: 'Проверка обновления DDNS-записей.' },
+          { id: 'net-rtsp', name: 'RTSP', details: 'Проверить доступность RTSP-потока.' },
+          { id: 'net-rtmp', name: 'RTMP', details: 'Проверить публикацию видеопотока RTMP.' },
+          { id: 'net-sip', name: 'VoIP/SIP', details: 'Проверить SIP-регистрацию и вызовы.' },
+          { id: 'net-snmp', name: 'SNMP', details: 'Проверка SNMP-метрик и доступа.' },
+          { id: 'net-8021x', name: 'IEEE 802.1x', details: 'Проверка сетевой аутентификации.' },
+          { id: 'net-bonjour', name: 'Bonjour', details: 'Проверка обнаружения устройства в сети.' },
+          { id: 'net-gb28181', name: 'GB28181', details: 'Проверка регистрации и передачи в GB28181.' },
+          { id: 'net-qos', name: 'QoS', details: 'Проверка приоритизации трафика.' },
+          { id: 'net-https', name: 'HTTPS', details: 'Проверка сертификатов и безопасного доступа.' }
+        ]
+      },
+      {
+        id: 'video',
+        name: 'Видео (Video)',
+        icon: '🎥',
+        tests: [
+          { id: 'vid-stream-main', name: 'Кодирование: основной поток', details: 'Проверить битрейт, FPS, кодек, GOP.' },
+          { id: 'vid-stream-sub', name: 'Кодирование: подпоток', details: 'Проверить настройки подпотока.' },
+          { id: 'vid-stream-third', name: 'Кодирование: третий поток', details: 'Проверить настройки третьего потока.' },
+          { id: 'vid-roi', name: 'ROI', details: 'Проверить область интереса и влияние на качество.' },
+          { id: 'vid-osd', name: 'OSD', details: 'Проверка отображения даты/текста в OSD.' },
+          { id: 'vid-privacy-mask', name: 'Маски приватности', details: 'Проверка создания и применения масок.' },
+          { id: 'vid-image', name: 'Настройки изображения', details: 'Яркость, контраст, насыщенность, резкость.' },
+          { id: 'vid-exposure', name: 'Экспозиция', details: 'Проверка режимов экспозиции.' },
+          { id: 'vid-white-balance', name: 'Баланс белого', details: 'Проверка корректности цветопередачи.' },
+          { id: 'vid-day-night', name: 'День/Ночь', details: 'Проверка переключения режимов.' },
+          { id: 'vid-ir', name: 'ИК подсветка', details: 'Проверка работы ИК-подсветки.' },
+          { id: 'vid-defog', name: 'Устранение тумана', details: 'Проверка функции Defog.' },
+          { id: 'vid-wdr', name: 'WDR', details: 'Проверка работы Wide Dynamic Range.' },
+          { id: 'vid-blc', name: 'BLC', details: 'Проверка компенсации задней подсветки.' },
+          { id: 'vid-hlc', name: 'HLC', details: 'Проверка компенсации засветки.' },
+          { id: 'vid-mirror-flip', name: 'Зеркало и переворот', details: 'Проверить корректность ориентации изображения.' },
+          { id: 'vid-corridor', name: 'Режим коридора', details: 'Проверка коридорного режима.' }
+        ]
+      },
+      {
+        id: 'audio',
+        name: 'Аудио (Audio)',
+        icon: '🔊',
+        tests: [
+          { id: 'aud-encoding', name: 'Кодирование', details: 'Проверить аудиокодек и качество звука.' },
+          { id: 'aud-io', name: 'Входы/выходы', details: 'Проверка аудиовхода и аудиовыхода.' },
+          { id: 'aud-denoise', name: 'Шумоподавление', details: 'Проверка подавления шума.' },
+          { id: 'aud-detection', name: 'Детекция звука', details: 'Проверить тревогу при звуковых событиях.' }
+        ]
+      },
+      {
+        id: 'storage',
+        name: 'Хранение (Storage)',
+        icon: '💾',
+        tests: [
+          { id: 'sto-schedule', name: 'Расписание записи', details: 'Проверка расписания постоянной/событийной записи.' },
+          { id: 'sto-sd', name: 'SD карта', details: 'Проверка распознавания и записи на SD.' },
+          { id: 'sto-nas', name: 'NAS', details: 'Проверка подключения к NAS и записи.' },
+          { id: 'sto-ftp', name: 'FTP', details: 'Проверка выгрузки файлов на FTP.' },
+          { id: 'sto-cloud', name: 'Облачное хранилище', details: 'Проверка интеграции облачного хранилища.' },
+          { id: 'sto-overwrite', name: 'Перезапись', details: 'Проверить поведение при переполнении хранилища.' }
+        ]
+      },
+      {
+        id: 'events',
+        name: 'События (Events)',
+        icon: '🚨',
+        tests: [
+          { id: 'evt-motion', name: 'Детекция движения', details: 'Проверка зоны, чувствительности и реакции.' },
+          { id: 'evt-tamper', name: 'Саботаж', details: 'Проверка детекции перекрытия камеры.' },
+          { id: 'evt-scene', name: 'Изменение сцены', details: 'Проверка тревоги при изменении сцены.' },
+          { id: 'evt-alarm-io', name: 'Тревожные входы/выходы', details: 'Проверка работы I/O тревог.' },
+          { id: 'evt-anomaly', name: 'Аномалии', details: 'Проверка тревог при сетевых/системных аномалиях.' },
+          { id: 'evt-actions', name: 'Действия при событиях', details: 'Почта, запись, PTZ-реакция, тревожный выход.' }
+        ]
+      },
+      {
+        id: 'smart',
+        name: 'Видеоаналитика (Smart Analysis)',
+        icon: '🧠',
+        tests: [
+          { id: 'sm-face', name: 'Обнаружение лиц', details: 'Проверка детекции лиц и стабильности триггера.' },
+          { id: 'sm-human', name: 'Детектор людей', details: 'Проверка классификации человека.' },
+          { id: 'sm-vehicle', name: 'Детектор автомобилей', details: 'Проверка классификации транспортных средств.' },
+          { id: 'sm-line-cross', name: 'Пересечение линий', details: 'Проверить триггеры crossing line.' },
+          { id: 'sm-intrusion', name: 'Вторжение', details: 'Проверить intrusion detection.' },
+          { id: 'sm-loitering', name: 'Loitering', details: 'Проверить тревогу при задержке в зоне.' },
+          { id: 'sm-object', name: 'Оставленные/пропавшие объекты', details: 'Проверить abandoned/missing object.' },
+          { id: 'sm-crowd', name: 'Плотность толпы', details: 'Проверка подсчёта плотности/переполнения.' }
+        ]
+      },
+      {
+        id: 'security',
+        name: 'Безопасность (Security)',
+        icon: '🔐',
+        tests: [
+          { id: 'sec-users', name: 'Управление пользователями', details: 'Создание/редактирование/удаление пользователей.' },
+          { id: 'sec-groups', name: 'Группы и права доступа', details: 'Проверить гранулярные права.' },
+          { id: 'sec-ip-filter', name: 'IP фильтр', details: 'Проверка whitelist/blacklist.' },
+          { id: 'sec-policy', name: 'Политика паролей', details: 'Сложность и срок действия паролей.' },
+          { id: 'sec-https', name: 'HTTPS', details: 'Проверка TLS-доступа и сертификатов.' },
+          { id: 'sec-telnet-ssh', name: 'Telnet/SSH', details: 'Проверка ограничений удалённого доступа.' }
+        ]
+      },
+      {
+        id: 'ptz',
+        name: 'PTZ Управление',
+        icon: '🎛️',
+        tests: [
+          { id: 'ptz-dir', name: 'Направление', details: 'Проверить поворот/наклон камеры.' },
+          { id: 'ptz-zoom', name: 'Зум', details: 'Проверить zoom in/zoom out.' },
+          { id: 'ptz-focus', name: 'Фокус', details: 'Проверить авто и ручной фокус.' },
+          { id: 'ptz-iris', name: 'Диафрагма', details: 'Проверить управление iris.' },
+          { id: 'ptz-presets', name: 'Предустановки', details: 'Проверка сохранения и вызова пресетов.' },
+          { id: 'ptz-tours', name: 'Туры', details: 'Проверка последовательностей обхода.' },
+          { id: 'ptz-patterns', name: 'Паттерны', details: 'Проверка записи и воспроизведения паттернов.' },
+          { id: 'ptz-autoscan', name: 'Автосканирование', details: 'Проверка режима автосканирования.' },
+          { id: 'ptz-home', name: 'Домашняя позиция', details: 'Проверка возврата в home позицию.' }
+        ]
+      }
+    ];
+
+    const state = {
+      testStates: {},
+      testNotes: {},
+      testScreenshots: {},
+      sectionCollapsed: {},
+      projectName: '',
+      cameraModel: '',
+      firmwareVersion: '',
+      testerName: '',
+      testDate: '',
+      savedAt: '',
+      searchQuery: '',
+      authMode: 'login',
+      auth: {
+        token: '',
+        user: null
+      },
+      projects: [],
+      projectMembers: [],
+      activeProjectId: '',
+      activeProjectRole: '',
+      saveDebounceTimer: null,
+      theme: 'dark',
+      testCatalog: []
+    };
+
+    const els = {
+      appRoot: document.getElementById('appRoot'),
+      authGate: document.getElementById('authGate'),
+      loginTab: document.getElementById('loginTab'),
+      registerTab: document.getElementById('registerTab'),
+      authForm: document.getElementById('authForm'),
+      authNameField: document.getElementById('authNameField'),
+      authName: document.getElementById('authName'),
+      authEmail: document.getElementById('authEmail'),
+      authPassword: document.getElementById('authPassword'),
+      authSubmitBtn: document.getElementById('authSubmitBtn'),
+      authError: document.getElementById('authError'),
+      userBadge: document.getElementById('userBadge'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      projectSelect: document.getElementById('projectSelect'),
+      refreshProjectsBtn: document.getElementById('refreshProjectsBtn'),
+      newProjectName: document.getElementById('newProjectName'),
+      createProjectBtn: document.getElementById('createProjectBtn'),
+      inviteEmail: document.getElementById('inviteEmail'),
+      inviteRole: document.getElementById('inviteRole'),
+      inviteBtn: document.getElementById('inviteBtn'),
+      membersList: document.getElementById('membersList'),
+      projectRoleLabel: document.getElementById('projectRoleLabel'),
+      projectName: document.getElementById('projectName'),
+      cameraModel: document.getElementById('cameraModel'),
+      firmwareVersion: document.getElementById('firmwareVersion'),
+      testerName: document.getElementById('testerName'),
+      testDate: document.getElementById('testDate'),
+      searchInput: document.getElementById('searchInput'),
+      addSectionBtn: document.getElementById('addSectionBtn'),
+      testTree: document.getElementById('testTree'),
+      overallProgress: document.getElementById('overallProgress'),
+      statPassed: document.getElementById('statPassed'),
+      statFailed: document.getElementById('statFailed'),
+      statMaybe: document.getElementById('statMaybe'),
+      statPending: document.getElementById('statPending'),
+      exportBtn: document.getElementById('exportBtn'),
+      saveBtn: document.getElementById('saveBtn'),
+      loadBtn: document.getElementById('loadBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      reportModal: document.getElementById('reportModal'),
+      imageModal: document.getElementById('imageModal'),
+      reportText: document.getElementById('reportText'),
+      copyReportBtn: document.getElementById('copyReportBtn'),
+      downloadReportBtn: document.getElementById('downloadReportBtn'),
+      fullImage: document.getElementById('fullImage'),
+      toast: document.getElementById('toast')
+    };
+
+    async function init() {
+      const today = new Date().toISOString().slice(0, 10);
+      state.testDate = today;
+      els.testDate.value = today;
+      initTheme();
+      bindGlobalEvents();
+      setAuthMode('login');
+
+      const auth = loadAuthFromStorage();
+      if (auth) {
+        state.auth = auth;
+        const ok = await restoreSession();
+        if (ok) {
+          await onAuthenticated();
+          return;
+        }
+      }
+
+      showAuthGate();
+    }
+
+    function bindGlobalEvents() {
+      document.querySelectorAll('[data-theme-set]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const theme = btn.getAttribute('data-theme-set');
+          if (!theme) return;
+          setTheme(theme);
+        });
+      });
+      els.loginTab.addEventListener('click', () => setAuthMode('login'));
+      els.registerTab.addEventListener('click', () => setAuthMode('register'));
+      els.authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await submitAuth();
+      });
+      els.logoutBtn.addEventListener('click', logout);
+      els.refreshProjectsBtn.addEventListener('click', async () => {
+        await loadProjects(true);
+      });
+      els.createProjectBtn.addEventListener('click', async () => {
+        await createProject();
+      });
+      els.inviteBtn.addEventListener('click', async () => {
+        await inviteToProject();
+      });
+      els.projectSelect.addEventListener('change', async (e) => {
+        await selectProject(e.target.value, true);
+      });
+      els.addSectionBtn.addEventListener('click', () => {
+        addSection();
+      });
+      els.membersList.addEventListener('change', async (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLSelectElement)) return;
+        const userId = target.getAttribute('data-member-role');
+        if (!userId) return;
+        await updateMemberRole(userId, target.value);
+      });
+      els.membersList.addEventListener('click', async (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        const button = target.closest('[data-remove-member]');
+        if (!button) return;
+        const userId = button.getAttribute('data-remove-member');
+        if (!userId) return;
+        await removeMember(userId);
+      });
+
+      [
+        ['projectName', 'projectName'],
+        ['cameraModel', 'cameraModel'],
+        ['firmwareVersion', 'firmwareVersion'],
+        ['testerName', 'testerName'],
+        ['testDate', 'testDate']
+      ].forEach(([elKey, stateKey]) => {
+        els[elKey].addEventListener('input', (e) => {
+          state[stateKey] = e.target.value;
+          saveToLocalStorage();
+        });
+      });
+
+      els.searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value.trim().toLowerCase();
+        renderTree();
+      });
+
+      els.exportBtn.addEventListener('click', () => {
+        els.reportText.value = generateReport();
+        openModal(els.reportModal);
+      });
+
+      els.saveBtn.addEventListener('click', () => {
+        saveToLocalStorage();
+        void saveProjectSession(true);
+      });
+
+      els.loadBtn.addEventListener('click', () => {
+        void loadProjectSession(false);
+      });
+
+      els.resetBtn.addEventListener('click', () => {
+        if (!canEditProject()) {
+          showToast('У вас режим просмотра проекта.');
+          return;
+        }
+        const ok = window.confirm('Сбросить все статусы, примечания и скриншоты?');
+        if (!ok) return;
+        state.testStates = {};
+        state.testNotes = {};
+        state.testScreenshots = {};
+        saveToLocalStorage();
+        render();
+        showToast('Данные тестов очищены.');
+      });
+
+      els.copyReportBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(els.reportText.value);
+          showToast('Отчёт скопирован в буфер обмена.');
+        } catch {
+          showToast('Не удалось скопировать отчёт.');
+        }
+      });
+
+      els.downloadReportBtn.addEventListener('click', () => {
+        const model = sanitizeFilePart(state.cameraModel || 'camera');
+        const date = sanitizeFilePart(state.testDate || new Date().toISOString().slice(0, 10));
+        const fileName = `test_report_${model}_${date}.txt`;
+        const blob = new Blob([els.reportText.value], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+
+      document.querySelectorAll('[data-close]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-close');
+          closeModal(document.getElementById(id));
+        });
+      });
+
+      [els.reportModal, els.imageModal].forEach((modal) => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) closeModal(modal);
+        });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeModal(els.reportModal);
+          closeModal(els.imageModal);
+        }
+      });
+    }
+
+    function setAuthMode(mode) {
+      state.authMode = mode;
+      const isRegister = mode === 'register';
+      els.loginTab.classList.toggle('active', !isRegister);
+      els.registerTab.classList.toggle('active', isRegister);
+      els.authNameField.classList.toggle('hidden', !isRegister);
+      els.authSubmitBtn.textContent = isRegister ? 'Создать аккаунт' : 'Войти';
+      els.authError.textContent = '';
+    }
+
+    function initTheme() {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'light' || stored === 'dark') {
+        state.theme = stored;
+      } else {
+        state.theme = 'dark';
+      }
+      applyTheme();
+    }
+
+    function setTheme(theme) {
+      if (theme !== 'light' && theme !== 'dark') return;
+      state.theme = theme;
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      applyTheme();
+    }
+
+    function applyTheme() {
+      document.documentElement.setAttribute('data-theme', state.theme);
+      document.querySelectorAll('[data-theme-set]').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-theme-set') === state.theme);
+      });
+    }
+
+    async function submitAuth() {
+      const name = els.authName.value.trim();
+      const email = els.authEmail.value.trim().toLowerCase();
+      const password = els.authPassword.value;
+      const isRegister = state.authMode === 'register';
+
+      if (isRegister && name.length < 2) {
+        els.authError.textContent = 'Имя должно быть не короче 2 символов.';
+        return;
+      }
+      if (!email.includes('@')) {
+        els.authError.textContent = 'Введите корректный email.';
+        return;
+      }
+      if (password.length < 8) {
+        els.authError.textContent = 'Пароль должен быть не короче 8 символов.';
+        return;
+      }
+
+      els.authSubmitBtn.disabled = true;
+      els.authError.textContent = 'Проверка...';
+
+      try {
+        const endpoint = isRegister ? '/auth/register' : '/auth/login';
+        const body = isRegister ? { name, email, password } : { email, password };
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Ошибка авторизации.');
+        }
+
+        state.auth = { token: payload.token, user: payload.user };
+        saveAuthToStorage();
+        els.authPassword.value = '';
+        await onAuthenticated();
+        showToast('Вход выполнен.');
+      } catch (error) {
+        els.authError.textContent = error.message || 'Ошибка сети.';
+      } finally {
+        els.authSubmitBtn.disabled = false;
+        if (els.authError.textContent === 'Проверка...') els.authError.textContent = '';
+      }
+    }
+
+    async function restoreSession() {
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${state.auth.token}` }
+        });
+        const payload = await response.json();
+        if (!response.ok) return false;
+        state.auth.user = payload.user;
+        saveAuthToStorage();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function onAuthenticated() {
+      resetSessionState();
+      showApp();
+      await loadProjects(false);
+      render();
+    }
+
+    function showAuthGate() {
+      els.authGate.classList.remove('hidden');
+      els.appRoot.classList.add('hidden');
+    }
+
+    function showApp() {
+      els.authGate.classList.add('hidden');
+      els.appRoot.classList.remove('hidden');
+    }
+
+    function updateUserBadge() {
+      els.userBadge.textContent = state.auth.user?.email || '-';
+    }
+
+    async function apiFetch(path, options = {}) {
+      const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${state.auth.token}`,
+          ...(options.headers || {})
+        }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Ошибка API.');
+      return payload;
+    }
+
+    async function loadProjects(showFeedback) {
+      try {
+        const payload = await apiFetch('/projects');
+        state.projects = payload.projects || [];
+        renderProjectOptions();
+
+        if (!state.projects.length) {
+          state.activeProjectId = '';
+          state.activeProjectRole = '';
+          resetSessionState();
+          render();
+          if (showFeedback) showToast('Проектов пока нет. Создай новый проект.');
+          return;
+        }
+
+        const sameProject = state.projects.find((p) => p.id === state.activeProjectId);
+        const nextProjectId = sameProject ? sameProject.id : state.projects[0].id;
+        await selectProject(nextProjectId, false);
+        if (showFeedback) showToast('Список проектов обновлён.');
+      } catch (error) {
+        if (showFeedback) showToast(error.message || 'Не удалось загрузить проекты.');
+      }
+    }
+
+    function renderProjectOptions() {
+      if (!state.projects.length) {
+        els.projectSelect.innerHTML = '<option value="">Нет проектов</option>';
+        els.projectSelect.value = '';
+        els.projectRoleLabel.textContent = 'Проект не выбран.';
+        state.projectMembers = [];
+        renderProjectMembers();
+        return;
+      }
+
+      els.projectSelect.innerHTML = state.projects
+        .map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
+        .join('');
+      els.projectSelect.value = state.activeProjectId || state.projects[0].id;
+      const active = state.projects.find((p) => p.id === els.projectSelect.value);
+      if (active) {
+        els.projectRoleLabel.textContent = `Роль: ${active.role.toUpperCase()} | Обновлён: ${new Date(active.updatedAt).toLocaleString('ru-RU')}`;
+      }
+    }
+
+    function renderProjectMembers() {
+      if (!state.activeProjectId) {
+        els.membersList.innerHTML = '<div class="member-empty">Список участников будет доступен после выбора проекта.</div>';
+        return;
+      }
+      if (!state.projectMembers.length) {
+        els.membersList.innerHTML = '<div class="member-empty">Участники не найдены.</div>';
+        return;
+      }
+
+      const ownerId = getActiveProject()?.ownerId || '';
+      const canManage = state.activeProjectRole === 'owner';
+      els.membersList.innerHTML = state.projectMembers.map((member) => {
+        const isOwner = member.userId === ownerId;
+        const displayName = member.name || 'Без имени';
+        const displayRole = member.role.toUpperCase();
+        if (!canManage || isOwner) {
+          return `
+            <div class="member-row">
+              <div class="member-meta">
+                <div class="member-name">${escapeHtml(displayName)} (${displayRole})</div>
+                <div class="member-email">${escapeHtml(member.email || '-')}</div>
+              </div>
+              <div></div>
+              <div></div>
+            </div>
+          `;
+        }
+        return `
+          <div class="member-row">
+            <div class="member-meta">
+              <div class="member-name">${escapeHtml(displayName)}</div>
+              <div class="member-email">${escapeHtml(member.email || '-')}</div>
+            </div>
+            <select data-member-role="${member.userId}" title="Изменить роль">
+              <option value="editor" ${member.role === 'editor' ? 'selected' : ''}>Editor</option>
+              <option value="viewer" ${member.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+            </select>
+            <button class="btn" type="button" data-remove-member="${member.userId}" title="Удалить участника">Удалить</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getActiveProject() {
+      return state.projects.find((p) => p.id === state.activeProjectId) || null;
+    }
+
+    function updateActiveProjectMeta(updatedAt) {
+      const active = getActiveProject();
+      if (!active || !updatedAt) return;
+      active.updatedAt = updatedAt;
+      renderProjectOptions();
+    }
+
+    async function createProject() {
+      const name = els.newProjectName.value.trim();
+      if (name.length < 3) {
+        showToast('Название проекта должно быть не короче 3 символов.');
+        return;
+      }
+      try {
+        const payload = await apiFetch('/projects', {
+          method: 'POST',
+          body: JSON.stringify({ name })
+        });
+        els.newProjectName.value = '';
+        await loadProjects(false);
+        await selectProject(payload.project.id, false);
+        showToast('Проект создан.');
+      } catch (error) {
+        showToast(error.message || 'Не удалось создать проект.');
+      }
+    }
+
+    async function inviteToProject() {
+      if (!state.activeProjectId) {
+        showToast('Сначала выбери проект.');
+        return;
+      }
+      if (state.activeProjectRole !== 'owner') {
+        showToast('Только владелец может выдавать доступ.');
+        return;
+      }
+      const email = els.inviteEmail.value.trim().toLowerCase();
+      const role = els.inviteRole.value;
+      if (!email.includes('@')) {
+        showToast('Введи корректный email.');
+        return;
+      }
+      try {
+        const payload = await apiFetch(`/projects/${state.activeProjectId}/members`, {
+          method: 'POST',
+          body: JSON.stringify({ email, role })
+        });
+        els.inviteEmail.value = '';
+        updateActiveProjectMeta(payload.project?.updatedAt || '');
+        await loadProjectMembers(false);
+        showToast(`Доступ выдан: ${role}.`);
+      } catch (error) {
+        showToast(error.message || 'Не удалось выдать доступ.');
+      }
+    }
+
+    async function selectProject(projectId, showFeedback) {
+      if (!projectId) return;
+      const selected = state.projects.find((p) => p.id === projectId);
+      if (!selected) return;
+      state.activeProjectId = selected.id;
+      state.activeProjectRole = selected.role;
+      renderProjectOptions();
+      await loadProjectSession(showFeedback);
+      await loadProjectMembers(false);
+      applyAccessMode();
+    }
+
+    async function loadProjectMembers(showFeedback) {
+      if (!state.activeProjectId) {
+        state.projectMembers = [];
+        renderProjectMembers();
+        return;
+      }
+      try {
+        const payload = await apiFetch(`/projects/${state.activeProjectId}/members`);
+        state.projectMembers = payload.members || [];
+        renderProjectMembers();
+        if (showFeedback) showToast('Список участников обновлён.');
+      } catch (error) {
+        if (showFeedback) showToast(error.message || 'Не удалось загрузить участников.');
+      }
+    }
+
+    async function updateMemberRole(userId, role) {
+      if (state.activeProjectRole !== 'owner') {
+        showToast('Только владелец может менять роли.');
+        return;
+      }
+      try {
+        const payload = await apiFetch(`/projects/${state.activeProjectId}/members/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role })
+        });
+        updateActiveProjectMeta(payload.updatedAt || '');
+        await loadProjectMembers(false);
+        showToast('Роль участника обновлена.');
+      } catch (error) {
+        showToast(error.message || 'Не удалось обновить роль.');
+      }
+    }
+
+    async function removeMember(userId) {
+      if (state.activeProjectRole !== 'owner') {
+        showToast('Только владелец может удалять участников.');
+        return;
+      }
+      const ok = window.confirm('Удалить участника из проекта?');
+      if (!ok) return;
+      try {
+        const payload = await apiFetch(`/projects/${state.activeProjectId}/members/${userId}`, {
+          method: 'DELETE'
+        });
+        updateActiveProjectMeta(payload.updatedAt || '');
+        await loadProjectMembers(false);
+        showToast('Участник удалён.');
+      } catch (error) {
+        showToast(error.message || 'Не удалось удалить участника.');
+      }
+    }
+
+    async function loadProjectSession(showFeedback) {
+      if (!state.activeProjectId) return;
+      try {
+        const payload = await apiFetch(`/projects/${state.activeProjectId}/session`);
+        if (payload.session) {
+          applySessionPayload(payload.session);
+        } else {
+          loadFromLocalStorage(true);
+        }
+        render();
+        if (showFeedback) showToast('Прогресс проекта загружен.');
+      } catch (error) {
+        if (showFeedback) showToast(error.message || 'Не удалось загрузить прогресс.');
+      }
+    }
+
+    async function saveProjectSession(manual) {
+      if (!state.activeProjectId || !canEditProject()) return;
+      try {
+        await apiFetch(`/projects/${state.activeProjectId}/session`, {
+          method: 'PUT',
+          body: JSON.stringify({ session: buildSessionPayload() })
+        });
+        if (manual) showToast('Прогресс сохранён в проект.');
+      } catch (error) {
+        if (manual) showToast(error.message || 'Не удалось сохранить прогресс.');
+      }
+    }
+
+    function queueServerSave() {
+      if (!canEditProject()) return;
+      clearTimeout(state.saveDebounceTimer);
+      state.saveDebounceTimer = setTimeout(() => {
+        void saveProjectSession(false);
+      }, 500);
+    }
+
+    function canEditProject() {
+      return state.activeProjectRole === 'owner' || state.activeProjectRole === 'editor';
+    }
+
+    function addSection() {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const name = window.prompt('Название категории:', 'Новая категория');
+      if (!name || !name.trim()) return;
+      const icon = (window.prompt('Иконка (эмодзи):', '🧩') || '🧩').trim() || '🧩';
+      const id = generateSectionId(name.trim());
+      state.testCatalog.push({ id, name: name.trim(), icon, tests: [] });
+      saveToLocalStorage();
+      render();
+      showToast('Категория добавлена.');
+    }
+
+    function editSection(sectionId) {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const section = state.testCatalog.find((s) => s.id === sectionId);
+      if (!section) return;
+      const name = window.prompt('Новое название категории:', section.name);
+      if (!name || !name.trim()) return;
+      const icon = window.prompt('Иконка (эмодзи):', section.icon || '🧩');
+      section.name = name.trim();
+      section.icon = (icon || section.icon || '🧩').trim() || '🧩';
+      saveToLocalStorage();
+      render();
+      showToast('Категория обновлена.');
+    }
+
+    function deleteSection(sectionId) {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const section = state.testCatalog.find((s) => s.id === sectionId);
+      if (!section) return;
+      const ok = window.confirm(`Удалить категорию "${section.name}" и все её тесты?`);
+      if (!ok) return;
+      section.tests.forEach((test) => cleanupTestData(test.id));
+      state.testCatalog = state.testCatalog.filter((s) => s.id !== sectionId);
+      delete state.sectionCollapsed[sectionId];
+      saveToLocalStorage();
+      render();
+      showToast('Категория удалена.');
+    }
+
+    function addTest(sectionId) {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const section = state.testCatalog.find((s) => s.id === sectionId);
+      if (!section) return;
+      const name = window.prompt('Название теста:', 'Новый тест');
+      if (!name || !name.trim()) return;
+      const details = window.prompt('Детали теста:', 'Описание проверки...') || '';
+      const id = generateTestId(name.trim());
+      section.tests.push({ id, name: name.trim(), details: details.trim() });
+      saveToLocalStorage();
+      render();
+      showToast('Тест добавлен.');
+    }
+
+    function editTest(testId) {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const result = findTest(testId);
+      if (!result) return;
+      const { test } = result;
+      const name = window.prompt('Название теста:', test.name);
+      if (!name || !name.trim()) return;
+      const details = window.prompt('Детали теста:', test.details || '') || '';
+      test.name = name.trim();
+      test.details = details.trim();
+      saveToLocalStorage();
+      render();
+      showToast('Тест обновлён.');
+    }
+
+    function deleteTest(testId) {
+      if (!canEditProject()) return showToast('У вас режим просмотра проекта.');
+      const result = findTest(testId);
+      if (!result) return;
+      const { section, index, test } = result;
+      const ok = window.confirm(`Удалить тест "${test.name}"?`);
+      if (!ok) return;
+      section.tests.splice(index, 1);
+      cleanupTestData(testId);
+      saveToLocalStorage();
+      render();
+      showToast('Тест удалён.');
+    }
+
+    function findTest(testId) {
+      for (const section of state.testCatalog) {
+        const index = section.tests.findIndex((t) => t.id === testId);
+        if (index !== -1) return { section, index, test: section.tests[index] };
+      }
+      return null;
+    }
+
+    function cleanupTestData(testId) {
+      delete state.testStates[testId];
+      delete state.testNotes[testId];
+      delete state.testScreenshots[testId];
+    }
+
+    function generateSectionId(name) {
+      const existing = new Set(state.testCatalog.map((s) => s.id));
+      return generateUniqueId('section', name, existing);
+    }
+
+    function generateTestId(name) {
+      const existing = new Set(state.testCatalog.flatMap((s) => s.tests.map((t) => t.id)));
+      return generateUniqueId('test', name, existing);
+    }
+
+    function generateUniqueId(prefix, name, existing) {
+      const base = slugify(name) || `${prefix}-${Date.now()}`;
+      let candidate = base;
+      let idx = 2;
+      while (existing.has(candidate)) {
+        candidate = `${base}-${idx}`;
+        idx += 1;
+      }
+      return candidate;
+    }
+
+    function applySessionPayload(payload) {
+      resetSessionState();
+      if (!payload || typeof payload !== 'object') return;
+      state.testCatalog = Array.isArray(payload.testCatalog) && payload.testCatalog.length
+        ? cloneCatalog(payload.testCatalog)
+        : cloneCatalog(DEFAULT_TEST_DATA);
+      state.testStates = payload.testStates || {};
+      state.testNotes = payload.testNotes || {};
+      state.testScreenshots = payload.testScreenshots || {};
+      state.sectionCollapsed = payload.sectionCollapsed || {};
+      state.projectName = payload.projectName || '';
+      state.cameraModel = payload.cameraModel || '';
+      state.firmwareVersion = payload.firmwareVersion || '';
+      state.testerName = payload.testerName || '';
+      state.testDate = payload.testDate || state.testDate;
+      state.savedAt = payload.savedAt || '';
+    }
+
+    function buildSessionPayload() {
+      return {
+        testCatalog: state.testCatalog,
+        testStates: state.testStates,
+        testNotes: state.testNotes,
+        testScreenshots: state.testScreenshots,
+        sectionCollapsed: state.sectionCollapsed,
+        projectName: state.projectName,
+        cameraModel: state.cameraModel,
+        firmwareVersion: state.firmwareVersion,
+        testerName: state.testerName,
+        testDate: state.testDate,
+        savedAt: new Date().toISOString()
+      };
+    }
+
+    function applyAccessMode() {
+      const editable = canEditProject();
+      [els.projectName, els.cameraModel, els.firmwareVersion, els.testerName, els.testDate, els.saveBtn, els.resetBtn].forEach((el) => {
+        el.disabled = !editable;
+      });
+      els.addSectionBtn.disabled = !editable;
+      els.inviteEmail.disabled = state.activeProjectRole !== 'owner';
+      els.inviteRole.disabled = state.activeProjectRole !== 'owner';
+      els.inviteBtn.disabled = state.activeProjectRole !== 'owner';
+      renderProjectMembers();
+    }
+
+    function loadAuthFromStorage() {
+      try {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.token || !parsed?.user?.id) return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveAuthToStorage() {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.auth));
+    }
+
+    function clearAuthStorage() {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+
+    function logout() {
+      state.auth = { token: '', user: null };
+      state.projects = [];
+      state.projectMembers = [];
+      state.activeProjectId = '';
+      state.activeProjectRole = '';
+      clearTimeout(state.saveDebounceTimer);
+      clearAuthStorage();
+      resetSessionState();
+      els.authPassword.value = '';
+      showAuthGate();
+      showToast('Сессия завершена.');
+    }
+
+    function resetSessionState() {
+      state.testStates = {};
+      state.testNotes = {};
+      state.testScreenshots = {};
+      state.sectionCollapsed = {};
+      state.testCatalog = cloneCatalog(DEFAULT_TEST_DATA);
+      state.projectName = '';
+      state.cameraModel = '';
+      state.firmwareVersion = '';
+      state.testerName = '';
+      state.testDate = new Date().toISOString().slice(0, 10);
+      state.savedAt = '';
+      state.searchQuery = '';
+      els.searchInput.value = '';
+    }
+
+    function render() {
+      fillHeaderInputs();
+      updateUserBadge();
+      renderProjectOptions();
+      renderTree();
+      updateStats();
+      applyAccessMode();
+    }
+
+    function fillHeaderInputs() {
+      els.projectName.value = state.projectName || '';
+      els.cameraModel.value = state.cameraModel || '';
+      els.firmwareVersion.value = state.firmwareVersion || '';
+      els.testerName.value = state.testerName || '';
+      els.testDate.value = state.testDate || new Date().toISOString().slice(0, 10);
+    }
+
+    function renderTree() {
+      const query = state.searchQuery;
+      const html = [];
+
+      for (const section of state.testCatalog) {
+        const tests = section.tests.filter((test) => matchesSearch(test, query));
+        if (query && tests.length === 0) continue;
+
+        const collapsed = !!state.sectionCollapsed[section.id] && !query;
+        const done = tests.filter((t) => getStatus(t.id) !== 'pending').length;
+
+        html.push(`
+          <article class="section">
+            <button class="section-header" data-section-toggle="${section.id}" title="Свернуть/развернуть раздел">
+              <span class="section-left">
+                <span>${section.icon}</span>
+                <span class="section-title">${escapeHtml(section.name)}</span>
+              </span>
+              <span class="section-progress" style="display:flex;align-items:center;gap:8px;">
+                <span>${done}/${tests.length}</span>
+                ${canEditProject() ? `<button class="btn" type="button" data-add-test="${section.id}" title="Добавить тест" style="padding:4px 8px;min-height:30px;">+ Тест</button>` : ''}
+                ${canEditProject() ? `<button class="btn" type="button" data-edit-section="${section.id}" title="Редактировать категорию" style="padding:4px 8px;min-height:30px;">✎</button>` : ''}
+                ${canEditProject() ? `<button class="btn" type="button" data-delete-section="${section.id}" title="Удалить категорию" style="padding:4px 8px;min-height:30px;">🗑</button>` : ''}
+              </span>
+            </button>
+            <div class="tests ${collapsed ? 'hidden' : ''}" id="section-${section.id}">
+              ${tests.map((test) => renderTestItem(test)).join('')}
+            </div>
+          </article>
+        `);
+      }
+
+      els.testTree.innerHTML = html.join('') || '<div class="panel">Ничего не найдено по текущему запросу.</div>';
+
+      els.testTree.querySelectorAll('[data-section-toggle]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          if (e.target.closest('[data-add-test],[data-edit-section],[data-delete-section]')) return;
+          const id = btn.getAttribute('data-section-toggle');
+          state.sectionCollapsed[id] = !state.sectionCollapsed[id];
+          renderTree();
+          saveToLocalStorage();
+        });
+      });
+
+      bindTreeEvents();
+    }
+
+    function renderTestItem(test) {
+      const status = getStatus(test.id);
+      const note = state.testNotes[test.id] || '';
+      const screenshots = state.testScreenshots[test.id] || [];
+
+      const statusBtn = (type, symbol, title) => `
+        <button
+          class="status-btn ${status === type ? `active ${type}` : ''}"
+          data-status-btn="${test.id}:${type}"
+          title="${title}"
+          aria-label="${title}"
+          ${canEditProject() ? '' : 'disabled'}
+        >${symbol}</button>
+      `;
+
+      return `
+        <div class="test-item" data-test-id="${test.id}">
+          <div class="test-top">
+            <div>
+              <h3 class="test-name">${escapeHtml(test.name)}</h3>
+              <p class="test-details">${escapeHtml(test.details)}</p>
+            </div>
+            <div class="status-buttons">
+              ${canEditProject() ? `<button class="btn" type="button" data-edit-test="${test.id}" title="Редактировать тест" style="padding:4px 8px;min-height:36px;">✎</button>` : ''}
+              ${canEditProject() ? `<button class="btn" type="button" data-delete-test="${test.id}" title="Удалить тест" style="padding:4px 8px;min-height:36px;">🗑</button>` : ''}
+              ${statusBtn('passed', '✓', 'Пройдено')}
+              ${statusBtn('failed', '✗', 'Не пройдено')}
+              ${statusBtn('maybe', '?', 'Возможно')}
+            </div>
+          </div>
+
+          <div class="test-bottom">
+            <div class="notes">
+              <textarea
+                data-note-input="${test.id}"
+                placeholder="Добавьте комментарии, результаты, найденные проблемы..."
+                ${canEditProject() ? '' : 'readonly'}
+              >${escapeHtml(note)}</textarea>
+            </div>
+
+            <div class="shots">
+              <div class="uploader" data-drop-zone="${test.id}">
+                <span class="upload-text">Перетащите JPG/PNG/GIF сюда или загрузите вручную</span>
+                <button class="btn" data-upload-btn="${test.id}" type="button" title="Загрузить изображения" ${canEditProject() ? '' : 'disabled'}>📤 Загрузить изображения</button>
+                <input class="hidden" data-upload-input="${test.id}" type="file" accept="image/png,image/jpeg,image/gif" multiple />
+              </div>
+              <div class="screens">${renderScreenshots(test.id, screenshots)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScreenshots(testId, screenshots) {
+      if (!screenshots.length) {
+        return '<div class="upload-text">Скриншоты не добавлены</div>';
+      }
+
+      return screenshots
+        .map((src, idx) => `
+          <div class="shot">
+            <img src="${src}" alt="Скриншот ${idx + 1}" data-open-image="${testId}:${idx}" />
+            <button class="shot-delete" type="button" data-delete-image="${testId}:${idx}" title="Удалить изображение" ${canEditProject() ? '' : 'disabled'}>×</button>
+          </div>
+        `)
+        .join('');
+    }
+
+    function bindTreeEvents() {
+      els.testTree.querySelectorAll('[data-status-btn]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const [testId, status] = btn.getAttribute('data-status-btn').split(':');
+          setStatus(testId, status);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-add-test]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const sectionId = btn.getAttribute('data-add-test');
+          addTest(sectionId);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-edit-section]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const sectionId = btn.getAttribute('data-edit-section');
+          editSection(sectionId);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-delete-section]').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const sectionId = btn.getAttribute('data-delete-section');
+          deleteSection(sectionId);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-edit-test]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const testId = btn.getAttribute('data-edit-test');
+          editTest(testId);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-delete-test]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const testId = btn.getAttribute('data-delete-test');
+          deleteTest(testId);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-note-input]').forEach((textarea) => {
+        autoResize(textarea);
+        textarea.addEventListener('input', (e) => {
+          if (!canEditProject()) {
+            e.target.value = state.testNotes[e.target.getAttribute('data-note-input')] || '';
+            return;
+          }
+          const testId = e.target.getAttribute('data-note-input');
+          state.testNotes[testId] = e.target.value;
+          autoResize(e.target);
+          saveToLocalStorage();
+          updateStats();
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-upload-btn]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const testId = btn.getAttribute('data-upload-btn');
+          const input = els.testTree.querySelector(`[data-upload-input="${testId}"]`);
+          input?.click();
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-upload-input]').forEach((input) => {
+        input.addEventListener('change', async (e) => {
+          const testId = e.target.getAttribute('data-upload-input');
+          await addScreenshots(testId, Array.from(e.target.files || []));
+          e.target.value = '';
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-drop-zone]').forEach((zone) => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('drag');
+        });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+        zone.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          zone.classList.remove('drag');
+          if (!canEditProject()) return;
+          const testId = zone.getAttribute('data-drop-zone');
+          await addScreenshots(testId, Array.from(e.dataTransfer?.files || []));
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-open-image]').forEach((img) => {
+        img.addEventListener('click', () => {
+          const [testId, idxRaw] = img.getAttribute('data-open-image').split(':');
+          const idx = Number(idxRaw);
+          els.fullImage.src = state.testScreenshots[testId][idx];
+          openModal(els.imageModal);
+        });
+      });
+
+      els.testTree.querySelectorAll('[data-delete-image]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!canEditProject()) return;
+          const [testId, idxRaw] = btn.getAttribute('data-delete-image').split(':');
+          const idx = Number(idxRaw);
+          state.testScreenshots[testId].splice(idx, 1);
+          if (state.testScreenshots[testId].length === 0) delete state.testScreenshots[testId];
+          saveToLocalStorage();
+          renderTree();
+          updateStats();
+        });
+      });
+    }
+
+    function setStatus(testId, nextStatus) {
+      if (!canEditProject()) {
+        showToast('У вас режим просмотра проекта.');
+        return;
+      }
+      const current = getStatus(testId);
+      state.testStates[testId] = current === nextStatus ? 'pending' : nextStatus;
+      saveToLocalStorage();
+      renderTree();
+      updateStats();
+    }
+
+    function getStatus(testId) {
+      return state.testStates[testId] || 'pending';
+    }
+
+    async function addScreenshots(testId, files) {
+      if (!canEditProject()) {
+        showToast('У вас режим просмотра проекта.');
+        return;
+      }
+      if (!files.length) return;
+      const valid = files.filter((f) => /^image\/(png|jpeg|gif)$/.test(f.type));
+      if (!valid.length) {
+        showToast('Поддерживаются только JPG, PNG и GIF.');
+        return;
+      }
+
+      try {
+        const encoded = await Promise.all(valid.map(fileToBase64));
+        const current = state.testScreenshots[testId] || [];
+        state.testScreenshots[testId] = [...current, ...encoded];
+        saveToLocalStorage();
+        renderTree();
+        updateStats();
+      } catch {
+        showToast('Ошибка загрузки скриншота.');
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateStats() {
+      const allTests = state.testCatalog.flatMap((section) => section.tests);
+      let passed = 0;
+      let failed = 0;
+      let maybe = 0;
+
+      for (const test of allTests) {
+        const st = getStatus(test.id);
+        if (st === 'passed') passed++;
+        else if (st === 'failed') failed++;
+        else if (st === 'maybe') maybe++;
+      }
+
+      const total = allTests.length;
+      const pending = total - passed - failed - maybe;
+      const done = total - pending;
+      const progress = total ? Math.round((done / total) * 100) : 0;
+
+      els.statPassed.textContent = String(passed);
+      els.statFailed.textContent = String(failed);
+      els.statMaybe.textContent = String(maybe);
+      els.statPending.textContent = String(pending);
+      els.overallProgress.textContent = `Прогресс: ${progress}% (${done}/${total})`;
+    }
+
+    function generateReport() {
+      const allTests = state.testCatalog.flatMap((section) => section.tests);
+      const passed = allTests.filter((t) => getStatus(t.id) === 'passed').length;
+      const failed = allTests.filter((t) => getStatus(t.id) === 'failed').length;
+      const maybe = allTests.filter((t) => getStatus(t.id) === 'maybe').length;
+      const pending = allTests.length - passed - failed - maybe;
+      const progress = allTests.length ? Math.round(((passed + failed + maybe) / allTests.length) * 100) : 0;
+
+      const lines = [
+        '╔═══════════════════════════════════════════════════════════════╗',
+        '║        ОТЧЁТ О ТЕСТИРОВАНИИ IP-КАМЕРЫ                        ║',
+        '╚═══════════════════════════════════════════════════════════════╝',
+        '',
+        '📋 ОБЩАЯ ИНФОРМАЦИЯ',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `Проект:            ${state.projectName || '-'}`,
+        `Модель камеры:     ${state.cameraModel || '-'}`,
+        `Версия прошивки:   ${state.firmwareVersion || '-'}`,
+        `Тестировщик:       ${state.testerName || '-'}`,
+        `Дата тестирования: ${state.testDate || '-'}`,
+        '',
+        '📊 СТАТИСТИКА',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `✓ Пройдено:        ${passed}`,
+        `✗ Не пройдено:     ${failed}`,
+        `? Возможно:        ${maybe}`,
+        `○ Ожидает:         ${pending}`,
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `ВСЕГО ТЕСТОВ:      ${allTests.length}`,
+        `Прогресс:          ${progress}%`,
+        '',
+        '📝 РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+      ];
+
+      for (const section of state.testCatalog) {
+        lines.push('');
+        lines.push(`${section.icon} ${section.name}`);
+        lines.push('────────────────────────────────────────────────────────────');
+
+        for (const test of section.tests) {
+          const status = getStatus(test.id);
+          const note = (state.testNotes[test.id] || '').trim() || '-';
+          const shots = (state.testScreenshots[test.id] || []).length;
+          const padded = STATUS[status].label.toUpperCase().padEnd(12, ' ');
+
+          lines.push(`${STATUS[status].icon} [${padded}] ${test.name}`);
+          lines.push(`   ${test.details}`);
+          lines.push(`   📝 Примечания: ${note}`);
+          lines.push(`   📸 Скриншотов прикреплено: ${shots}`);
+        }
+      }
+
+      lines.push('');
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.push(`Отчёт сгенерирован: ${new Date().toLocaleString('ru-RU')}`);
+      lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      return lines.join('\n');
+    }
+
+    function loadFromLocalStorage(silent) {
+      const storageKey = getStorageKey();
+      if (!storageKey) return;
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+          if (!silent) showToast('Сохранённые данные не найдены.');
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        state.testCatalog = Array.isArray(parsed.testCatalog) && parsed.testCatalog.length
+          ? cloneCatalog(parsed.testCatalog)
+          : cloneCatalog(DEFAULT_TEST_DATA);
+        state.testStates = parsed.testStates || {};
+        state.testNotes = parsed.testNotes || {};
+        state.testScreenshots = parsed.testScreenshots || {};
+        state.projectName = parsed.projectName || '';
+        state.cameraModel = parsed.cameraModel || '';
+        state.firmwareVersion = parsed.firmwareVersion || '';
+        state.testerName = parsed.testerName || '';
+        state.testDate = parsed.testDate || state.testDate;
+        state.savedAt = parsed.savedAt || '';
+        state.sectionCollapsed = parsed.sectionCollapsed || {};
+
+        if (!silent) {
+          showToast(`Прогресс загружен${state.savedAt ? ` (${new Date(state.savedAt).toLocaleString('ru-RU')})` : ''}.`);
+          render();
+        }
+      } catch {
+        showToast('Ошибка чтения localStorage.');
+      }
+    }
+
+    function saveToLocalStorage() {
+      const storageKey = getStorageKey();
+      if (!storageKey) return;
+      try {
+        const payload = buildSessionPayload();
+        state.savedAt = payload.savedAt;
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        queueServerSave();
+      } catch {
+        showToast('Не удалось сохранить. Возможно, лимит localStorage превышен.');
+      }
+    }
+
+    function getStorageKey() {
+      const userId = state.auth.user?.id;
+      return userId && state.activeProjectId ? `${STORAGE_KEY}:${userId}:${state.activeProjectId}` : '';
+    }
+
+    function matchesSearch(test, query) {
+      if (!query) return true;
+      const haystack = [
+        test.name,
+        test.details,
+        state.testNotes[test.id] || ''
+      ].join(' ').toLowerCase();
+      return haystack.includes(query);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function sanitizeFilePart(value) {
+      return String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'report';
+    }
+
+    function slugify(value) {
+      return String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9а-яё]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-+/g, '-');
+    }
+
+    function cloneCatalog(catalog) {
+      return JSON.parse(JSON.stringify(catalog));
+    }
+
+    function autoResize(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.max(textarea.scrollHeight, 80)}px`;
+    }
+
+    function openModal(modal) {
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal(modal) {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      if (modal === els.imageModal) els.fullImage.src = '';
+    }
+
+    let toastTimer;
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      init().catch(() => {
+        showAuthGate();
+        showToast('Не удалось инициализировать приложение.');
+      });
+    });
+  </script>
+</body>
+</html>
