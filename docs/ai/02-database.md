@@ -1,85 +1,86 @@
 # AI Context: Database
 
 ## Назначение
-Текстовое описание целевой модели данных для управляемого ручного процесса.
-Источник текущей реализации: `backend/migrations/0001_init.up.sql`.
+Текстовое описание модели данных для управляемого ручного процесса.
+Источник: миграции `backend/migrations/0001_init.up.sql` и `backend/migrations/0002_controlled_manual_workflow.up.sql`.
 
-## Принципы
-- История должна быть неизменяемой: прогон ссылается на `testcase_version`, а не на mutable `testcase`.
-- Аналитика должна строиться SQL-запросами без сложных пост-обработок.
-- Любое управленческое действие должно оставлять след в `audit_log`.
+## Что уже реализовано миграциями
 
-## Рекомендуемые сущности (целевая модель)
+### Базовые enum
+- `project_role`: `owner | editor | viewer`
+- `test_status`: `pending | passed | failed | maybe` (legacy results)
+- `user_role`: `admin | lead | engineer | viewer`
+- `run_status`: `draft | in_progress | done | locked`
+- `result_status`: `ok | fail | na`
+- `audit_action`: `create | update | delete | lock | unlock | status_change | assign_role | revoke_role | attach | detach`
 
-### Библиотека тестов
-1. `test_suites`
-- Разделы/наборы тестов.
+### Legacy v1 таблицы (сохраняются для совместимости)
+- `users`, `auth_refresh_tokens`
+- `projects`, `project_members`
+- `test_sections`, `test_cases`
+- `test_runs`, `run_test_results`, `run_test_screenshots`
 
-2. `testcases`
-- Стабильный identity теста (без хранения полной mutable-логики).
+### Controlled workflow v2 таблицы
 
-3. `testcase_versions`
-- Версия кейса: текст, шаги, критерии, обязательность, оценка времени, сложность.
-- Ключевой принцип: run всегда привязывается к версии.
+#### Управление доступом
+- `user_roles` — глобальные роли пользователей (`admin/lead/engineer/viewer`)
 
-4. `tags`, `testcase_tags`
-- Теги для поиска, фильтрации, аналитики.
+#### Библиотека тестов
+- `test_suites` — наборы/разделы тестов
+- `testcases` — стабильная сущность кейса
+- `testcase_versions` — версионированное содержимое кейса (шаги, критерии, артефакты)
+- `tags`, `testcase_tags` — теги и связь m:n
 
-### Операционная работа
-1. `projects`
-- Проекты/клиенты/направления.
+#### Операционная работа
+- `assets` — объект тестирования (камера/прошивка/стенд/объект)
+- `run_templates`, `run_template_items` — шаблоны прогонов
+- `runs` — прогон с state machine и lock-полями
+- `run_items` — состав прогона, всегда со ссылкой на `testcase_version`
+- `fail_reasons` — справочник причин fail
+- `run_results` — результат по каждому пункту (`ok/fail/na`)
+- `attachments` — файлы к прогону или к результату (без base64)
 
-2. `assets`
-- Что тестируется: модель камеры, прошивка, стенд, объект.
+#### Аудит
+- `audit_log` — actor/action/entity/before/after с контекстом проекта и прогона
 
-3. `runs`
-- Контейнер прогона: кто, когда, по чему, статус.
-- Статусы: `draft`, `in_progress`, `done`, `locked`.
+## Ключевая логика связей (самое важное)
+1. `run_items` ссылается на `testcase_versions`, а не на mutable `testcases`.
+- Это гарантирует неизменяемость исторических прогонов.
 
-4. `run_items`
-- Состав прогона (список пунктов).
-- Содержит ссылку на конкретный `testcase_version`.
+2. `run_results` связан 1:1 с `run_items` (`UNIQUE (run_item_id)`).
+- По каждому пункту прогона хранится один актуальный результат.
 
-5. `run_results`
-- Результат по каждому `run_item`: `ok/fail/na`, комментарий, причина fail, timestamps.
+3. `attachments` привязывается к `run` и/или `run_result`.
+- Храним метаданные файла и ключ хранения.
 
-6. `attachments`
-- Файлы к `run_result` или к `run`.
-- Хранятся метаданные и ссылка/ключ файла, не Base64.
+4. `runs.status` ограничен state machine check-constraint.
+- `locked` требует заполненных `started_at`, `finished_at`, `locked_at`.
 
-### Управление и контроль
-1. `users`
-- Пользователи и роли.
+## Пример связки данных
+- Есть `testcase` "RTSP reconnect".
+- Для него есть версия `testcase_versions.version_number = 3`.
+- При создании прогона запись в `run_items` фиксирует именно эту версию.
+- `run_results` хранит `fail` + комментарий + `fail_reason_code`.
+- Скриншоты/видео живут в `attachments` и ссылаются на этот результат.
 
-2. `audit_log`
-- Полный трек изменений: actor, action, entity, entity_id, before_json, after_json, timestamp.
+## Правила для запросов и моделей
+- Для отчётов строить JOIN:
+  - `runs -> run_items -> testcase_versions -> testcases`
+  - `run_items -> run_results`
+  - при необходимости `run_results|runs -> attachments`
+- Для аудита строить выборки по:
+  - `entity_type/entity_id`
+  - `context_project_id`
+  - `context_run_id`
 
-3. (опционально) `worklog`
-- Явный учёт времени, если потребуется отдельно от таймстампов run.
-
-## Текущая реализация (что уже есть в БД)
-- enum: `project_role`, `test_status`
-- таблицы: `users`, `projects`, `project_members`, `test_sections`, `test_cases`, `test_runs`, `run_test_results`, `run_test_screenshots`, `auth_refresh_tokens`
-
-Ключевая текущая связка:
-- `test_runs` + `run_test_results` + `test_cases`
-- `run_test_results` хранит `status (test_status)` и payload результата.
-
-## Миграционный вектор
-Чтобы прийти к целевой модели без потери данных:
-1. Ввести `testcase_versions`.
-2. Добавить `run_items` со ссылкой на `testcase_version_id`.
-3. Перенести payload результата в `run_results` (или эволюционировать `run_test_results`).
-4. Нормализовать вложения в `attachments`.
-5. Добавить/расширить `audit_log`.
-
-## Что обязательно фиксировать для управляемости
+## Обязательные поля для управляемости
 - Проект
-- Asset (модель камеры, прошивка, стенд/объект)
+- Asset
 - Инженер
-- Шаблон набора тестов
-- Итог прогона и причина FAIL
+- Шаблон/набор тестов
+- Статус прогона
+- Итог/причина fail
 
-## Причины FAIL
-- Использовать справочник причин (enum/reference table), а не только свободный текст.
-- Допускать комментарий как дополнение к выбранной причине.
+## Миграционный вектор по коду (следующий шаг)
+- Перевести backend API с file-based storage на `sqlx` + PostgreSQL таблицы v2.
+- Сохранить compatibility read-only для legacy таблиц до полной миграции UI.
