@@ -1340,6 +1340,63 @@ async fn update_run_result_v2(
     }))
 }
 
+async fn validate_run_dod_for_close(
+    state: &AppState,
+    run_uuid: Uuid,
+) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+    let l0_count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*)
+        FROM run_items ri
+        JOIN testcase_versions tv ON tv.id = ri.testcase_version_id
+        JOIN testcases tc ON tc.id = tv.testcase_id
+        JOIN testcase_tags tt ON tt.testcase_id = tc.id
+        JOIN tags t ON t.id = tt.tag_id
+        WHERE ri.run_id = $1
+          AND lower(t.name::text) = 'l0'
+        "#,
+    )
+    .bind(run_uuid)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Ошибка проверки L0 покрытия."))?;
+
+    if l0_count == 0 {
+        return Err(api_error(
+            StatusCode::CONFLICT,
+            "Run нельзя закрыть: отсутствуют L0 тесты в составе прогона.",
+        ));
+    }
+
+    let unresolved_l0_count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*)
+        FROM run_items ri
+        JOIN testcase_versions tv ON tv.id = ri.testcase_version_id
+        JOIN testcases tc ON tc.id = tv.testcase_id
+        JOIN testcase_tags tt ON tt.testcase_id = tc.id
+        JOIN tags t ON t.id = tt.tag_id
+        LEFT JOIN run_results rr ON rr.run_item_id = ri.id
+        WHERE ri.run_id = $1
+          AND lower(t.name::text) = 'l0'
+          AND rr.run_item_id IS NULL
+        "#,
+    )
+    .bind(run_uuid)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Ошибка проверки L0 результатов."))?;
+
+    if unresolved_l0_count > 0 {
+        return Err(api_error(
+            StatusCode::CONFLICT,
+            "Run нельзя закрыть: не все L0 пункты имеют зафиксированный результат.",
+        ));
+    }
+
+    Ok(())
+}
+
 async fn update_run_status_v2(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
@@ -1373,6 +1430,10 @@ async fn update_run_status_v2(
             StatusCode::CONFLICT,
             "Недопустимый переход статуса run.",
         ));
+    }
+
+    if next == "done" || next == "locked" {
+        validate_run_dod_for_close(&state, run_uuid).await?;
     }
 
     match next {
